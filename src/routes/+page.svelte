@@ -55,6 +55,7 @@
 	// Chat 클라이언트 초기화
 	const chatClient = $derived(
 		new Chat({
+			api: '/api/chat',
 			id: currentChatId || undefined,
 			messages: untrack(() => {
 				// currentChatId가 있으면 해당 대화 로드
@@ -65,12 +66,19 @@
 				return [];
 			}),
 			generateId: () => crypto.randomUUID(),
+			fetch: async (url, options) => {
+				// 디버그: 요청 로깅
+				console.log('[Chat] Fetching:', url);
+				const response = await fetch(url, options);
+				console.log('[Chat] Response status:', response.status);
+				console.log('[Chat] Response headers:', Object.fromEntries(response.headers.entries()));
+				return response;
+			},
 			onFinish: () => {
 				saveCurrentChat();
 			},
 			onError: (error) => {
 				console.error('Chat error:', error);
-				// 디버그: 에러 상세 정보
 				const errMsg = error?.message || error?.toString?.() || JSON.stringify(error);
 				alert(`에러: ${errMsg}`);
 			}
