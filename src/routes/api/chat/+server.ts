@@ -78,12 +78,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       });
     }
 
-    // SSE 스트림 그대로 전달
+    // SSE 스트림 그대로 전달 (AI SDK 스트리밍 헤더 포함)
     return new Response(response.body, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'Transfer-Encoding': 'chunked',
         'x-vercel-ai-ui-message-stream': 'v1', // AI SDK Data Stream Protocol
         'X-RateLimit-Limit': response.headers.get('X-RateLimit-Limit') || '',
         'X-RateLimit-Remaining': response.headers.get('X-RateLimit-Remaining') || '',

@@ -66,21 +66,11 @@
 				return [];
 			}),
 			generateId: () => crypto.randomUUID(),
-			fetch: async (url, options) => {
-				// 디버그: 요청 로깅
-				console.log('[Chat] Fetching:', url);
-				const response = await fetch(url, options);
-				console.log('[Chat] Response status:', response.status);
-				console.log('[Chat] Response headers:', Object.fromEntries(response.headers.entries()));
-				return response;
-			},
 			onFinish: () => {
 				saveCurrentChat();
 			},
 			onError: (error) => {
 				console.error('Chat error:', error);
-				const errMsg = error?.message || error?.toString?.() || JSON.stringify(error);
-				alert(`에러: ${errMsg}`);
 			}
 		})
 	);
