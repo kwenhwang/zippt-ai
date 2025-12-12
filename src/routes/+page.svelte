@@ -70,6 +70,10 @@
 			},
 			onError: (error) => {
 				console.error('Chat error:', error);
+				// 모바일 디버깅용 alert
+				if (typeof window !== 'undefined' && window.innerWidth < 768) {
+					alert(`Chat Error: ${error?.message || String(error)}`);
+				}
 			}
 		})
 	);
