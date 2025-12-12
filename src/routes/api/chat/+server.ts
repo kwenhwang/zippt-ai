@@ -70,12 +70,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       });
     }
 
-    // AI SDK Data Stream Protocol 스트림 그대로 전달
+    // SSE 스트림 그대로 전달
     return new Response(response.body, {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'x-vercel-ai-data-stream': 'v1', // AI SDK Data Stream Protocol
+        'Connection': 'keep-alive',
+        'x-vercel-ai-ui-message-stream': 'v1', // AI SDK Data Stream Protocol
         'X-RateLimit-Limit': response.headers.get('X-RateLimit-Limit') || '',
         'X-RateLimit-Remaining': response.headers.get('X-RateLimit-Remaining') || '',
         'X-RateLimit-Reset': response.headers.get('X-RateLimit-Reset') || ''
