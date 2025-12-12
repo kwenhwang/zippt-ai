@@ -78,13 +78,65 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       });
     }
 
-    // SSE 스트림 그대로 전달 (AI SDK 스트리밍 헤더 포함)
-    return new Response(response.body, {
+    // SSE 이벤트 단위 버퍼링 (모바일 청크 분산 문제 해결)
+    // 모바일 네트워크는 작은 청크로 SSE 이벤트가 분산되어 AI SDK가 파싱 실패
+    // \n\n 경계를 기준으로 완전한 이벤트만 전달
+    const reader = response.body?.getReader();
+    if (!reader) {
+      return new Response(JSON.stringify({
+        error: '스트림을 읽을 수 없습니다.',
+        code: 'STREAM_ERROR'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        let buffer = '';
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            // 청크를 버퍼에 누적
+            buffer += decoder.decode(value, { stream: true });
+
+            // \n\n 기준으로 완전한 SSE 이벤트 분리
+            const events = buffer.split('\n\n');
+            buffer = events.pop() || ''; // 마지막 불완전 이벤트는 버퍼에 유지
+
+            // 완전한 이벤트만 클라이언트에 전달
+            for (const event of events) {
+              if (event.trim()) {
+                controller.enqueue(encoder.encode(event + '\n\n'));
+              }
+            }
+          }
+
+          // 남은 버퍼 전송 (스트림 종료 시)
+          if (buffer.trim()) {
+            controller.enqueue(encoder.encode(buffer + '\n\n'));
+          }
+
+          controller.close();
+        } catch (error) {
+          console.error('[Chat Proxy] Stream processing error:', error);
+          controller.error(error);
+        }
+      }
+    });
+
+    return new Response(stream, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Transfer-Encoding': 'chunked',
         'x-vercel-ai-ui-message-stream': 'v1', // AI SDK Data Stream Protocol
         'X-RateLimit-Limit': response.headers.get('X-RateLimit-Limit') || '',
         'X-RateLimit-Remaining': response.headers.get('X-RateLimit-Remaining') || '',
