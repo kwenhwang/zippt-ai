@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
-const API_CATALOG_URL = env.API_CATALOG_URL || 'https://sword33.duckdns.org';
+const API_CATALOG_URL = env.API_CATALOG_URL || 'https://korean-api-platform.vercel.app';
 
 /**
  * api-catalog /api/chat 프록시
@@ -42,7 +42,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
     // 에러 응답 처리
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorText = await response.text().catch(() => '');
+      let errorData = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        console.error(`[Chat Proxy] Non-JSON error response: ${errorText.substring(0, 500)}`);
+      }
+
+      console.error(`[Chat Proxy] API error: status=${response.status}, url=${API_CATALOG_URL}`);
 
       // Rate Limit 초과
       if (response.status === 429) {
