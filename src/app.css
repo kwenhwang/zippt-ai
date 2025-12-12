@@ -1,1 +1,131 @@
 @import "tailwindcss";
+
+/* 테마 색상 변수 */
+:root {
+  /* 시스템 폰트 스택 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Malgun Gothic', sans-serif;
+
+  /* 라이트 모드 (기본) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f4f5;
+  --bg-card: #ffffff;
+  --bg-input: #fafafa;
+  --text-primary: #18181b;
+  --text-secondary: #71717a;
+  --border-primary: #e4e4e7;
+  --accent: #ea580c;
+
+  /* Apple 스프링 애니메이션 easing */
+  --spring-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --spring-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+}
+
+/* 다크 모드 */
+.dark {
+  --bg-primary: #09090b;
+  --bg-secondary: #18181b;
+  --bg-card: #18181b;
+  --bg-input: #27272a;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --border-primary: #3f3f46;
+  --accent: #ea580c;
+}
+
+/* 기본 줄 간격 */
+body {
+  line-height: 1.5;
+}
+
+/* 부드러운 테마 전환 애니메이션 */
+* {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: 200ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* 애니메이션 제외 요소 */
+*:where([data-no-transition], .no-transition) {
+  transition: none !important;
+}
+
+/* 포커스 스타일 개선 - 접근성 */
+*:focus-visible {
+  outline: 2px solid #ea580c;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid #ea580c;
+  outline-offset: 2px;
+}
+
+/* 터치 타겟 최적화 - 모바일 UX */
+@layer components {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* 모바일 터치 영역 확대 */
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  input[type="text"],
+  input[type="search"],
+  textarea {
+    min-height: 48px;
+    font-size: 16px; /* iOS 줌 방지 */
+  }
+
+  /* 아이콘 버튼 터치 영역 */
+  button:has(svg):not(:has(span)) {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 12px;
+  }
+}
+
+/* 애니메이션 감소 모션 설정 - 접근성 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Safe Area 지원 */
+.safe-area-top {
+  padding-top: max(12px, env(safe-area-inset-top));
+}
+
+.safe-area-bottom {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* Apple HIG 타이포그래피 스케일 */
+.text-h1 { font-size: 2rem; }      /* 32px */
+.text-h2 { font-size: 1.75rem; }   /* 28px */
+.text-h3 { font-size: 1.375rem; }  /* 22px */
+.text-body { font-size: 1.0625rem; } /* 17px */
+
+/* 커스텀 펄스 바운스 애니메이션 */
+@keyframes pulse-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+.animate-pulse-bounce {
+  animation: pulse-bounce 0.6s ease-in-out infinite;
+}

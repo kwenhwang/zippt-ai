@@ -439,8 +439,8 @@
 	</header>
 
 	<!-- 채팅 영역 -->
-	<div class="flex-1 overflow-y-auto" bind:this={chatContainer}>
-		<div class="p-4 pb-24">
+	<main role="main" aria-label="채팅 메시지" class="flex-1 overflow-y-auto" bind:this={chatContainer}>
+		<div class="p-4 pb-24" aria-live="polite">
 			{#if chatClient.messages.length === 0}
 				<!-- 온보딩 화면 -->
 				<div class="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] gap-8">
@@ -553,10 +553,10 @@
 				</div>
 			{/if}
 		</div>
-	</div>
+	</main>
 
 	<!-- 입력 영역 (템플릿 스타일) -->
-	<div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 p-4">
+	<footer role="contentinfo" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 p-4 safe-area-bottom">
 		<div class="max-w-3xl mx-auto relative flex w-full flex-col gap-4">
 			<!-- Suggested Actions (메시지 없을 때만) -->
 			{#if chatClient.messages.length === 0}
@@ -605,7 +605,7 @@
 				<div class="absolute right-0 bottom-0 flex w-fit flex-row justify-end p-2">
 					{#if chatClient.status === 'streaming'}
 						<Button
-							class="h-fit rounded-full border p-1.5 dark:border-zinc-600"
+							class="rounded-full border min-w-11 min-h-11 p-2.5 dark:border-zinc-600"
 							onclick={() => chatClient.stop()}
 							aria-label="스트리밍 중지"
 						>
@@ -613,7 +613,7 @@
 						</Button>
 					{:else}
 						<Button
-							class="h-fit rounded-full border p-1.5 dark:border-zinc-600 bg-orange-600 hover:bg-orange-700 border-orange-600"
+							class="rounded-full border min-w-11 min-h-11 p-2.5 dark:border-zinc-600 bg-orange-600 hover:bg-orange-700 border-orange-600"
 							onclick={handleSubmit}
 							disabled={!input.trim() || chatClient.status === 'submitted'}
 							aria-label="메시지 전송"
@@ -628,7 +628,7 @@
 				집피티는 실수할 수 있습니다. 중요한 정보는 반드시 확인하세요.
 			</p>
 		</div>
-	</div>
+	</footer>
 </div>
 
 <style>

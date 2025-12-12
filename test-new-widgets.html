@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Test - 새 위젯 타입 검증</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #111; color: #fff; }
+        .widget-test { margin: 20px 0; padding: 15px; background: #222; border-radius: 8px; }
+        pre { background: #000; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>집피티 - 새 위젯 타입 검증</h1>
+
+    <div class="widget-test">
+        <h2>✅ RankingsTable 타입 정의</h2>
+        <pre>
+interface RankingsTableData {
+  type: 'rankings_table';
+  title: string;
+  metric: 'price' | 'volume' | 'growth' | 'yield';
+  items: Array<{
+    rank: number;
+    name: string;
+    value: number;
+    change?: number;
+  }>;
+}
+        </pre>
+        <p><strong>위젯 파일:</strong> /home/ubuntu/zippt-ai/src/lib/components/widgets/RankingsTable.svelte</p>
+        <p><strong>기능:</strong> 메달(🥇🥈🥉) 아이콘, 순위, 단지명, 값, 변화율(↑↓) 표시</p>
+    </div>
+
+    <div class="widget-test">
+        <h2>✅ BarChart 타입 정의</h2>
+        <pre>
+interface BarChartData {
+  type: 'bar_chart';
+  title: string;
+  data: Array<{
+    label: string;
+    value: number;
+    color?: string;
+  }>;
+  unit?: string; // '억', '%', '건' 등
+}
+        </pre>
+        <p><strong>위젯 파일:</strong> /home/ubuntu/zippt-ai/src/lib/components/widgets/BarChart.svelte</p>
+        <p><strong>기능:</strong> 막대 그래프, 레이블, 값, 단위 표시, 애니메이션 전환</p>
+    </div>
+
+    <div class="widget-test">
+        <h2>✅ PieChart 타입 정의</h2>
+        <pre>
+interface PieChartData {
+  type: 'pie_chart';
+  title: string;
+  data: Array<{
+    label: string;
+    value: number;
+    percentage: number;
+  }>;
+}
+        </pre>
+        <p><strong>위젯 파일:</strong> /home/ubuntu/zippt-ai/src/lib/components/widgets/PieChart.svelte</p>
+        <p><strong>기능:</strong> SVG 도넛 차트, 색상별 범례, 퍼센트 표시</p>
+    </div>
+
+    <div class="widget-test">
+        <h2>✅ WidgetRenderer 업데이트</h2>
+        <p>3개의 새 위젯 타입이 WidgetRenderer.svelte에 추가됨</p>
+        <ul>
+            <li>rankings_table → RankingsTable 컴포넌트</li>
+            <li>bar_chart → BarChart 컴포넌트</li>
+            <li>pie_chart → PieChart 컴포넌트</li>
+        </ul>
+    </div>
+
+    <div class="widget-test">
+        <h2>✅ API 시스템 프롬프트 업데이트</h2>
+        <p>/home/ubuntu/zippt-ai/src/routes/api/chat/+server.ts에 새 위젯 사용 예시 추가</p>
+        <ul>
+            <li>순위/랭킹 질문 → rankings_table</li>
+            <li>지역별/카테고리별 수치 비교 → bar_chart</li>
+            <li>비율/구성 질문 → pie_chart</li>
+        </ul>
+    </div>
+
+    <div class="widget-test">
+        <h2>📝 테스트 시나리오</h2>
+        <ol>
+            <li><strong>RankingsTable</strong>: "강남구에서 가장 비싼 아파트 TOP 5 알려줘"</li>
+            <li><strong>BarChart</strong>: "서울 주요 구별 평균 상승률 비교해줘"</li>
+            <li><strong>PieChart</strong>: "강남구 아파트 평형별 거래 비율 보여줘"</li>
+        </ol>
+    </div>
+
+    <div class="widget-test">
+        <h2>🎨 UI 특징</h2>
+        <ul>
+            <li><strong>RankingsTable</strong>: 메달 이모지, TrendingUp/Down 아이콘, hover 효과</li>
+            <li><strong>BarChart</strong>: 색상 그라데이션(orange→emerald), 진행률 애니메이션</li>
+            <li><strong>PieChart</strong>: SVG 도넛 차트, 색상 범례, 퍼센트 표시</li>
+        </ul>
+    </div>
+
+    <hr style="margin: 40px 0;">
+
+    <div class="widget-test">
+        <h2>🔧 구현 완료 항목</h2>
+        <ul>
+            <li>✅ /home/ubuntu/zippt-ai/src/lib/types/widgets.ts - 타입 정의 추가</li>
+            <li>✅ /home/ubuntu/zippt-ai/src/lib/components/widgets/RankingsTable.svelte - 생성</li>
+            <li>✅ /home/ubuntu/zippt-ai/src/lib/components/widgets/BarChart.svelte - 생성</li>
+            <li>✅ /home/ubuntu/zippt-ai/src/lib/components/widgets/PieChart.svelte - 생성</li>
+            <li>✅ /home/ubuntu/zippt-ai/src/lib/components/widgets/WidgetRenderer.svelte - 업데이트</li>
+            <li>✅ /home/ubuntu/zippt-ai/src/lib/components/widgets/index.ts - 업데이트</li>
+            <li>✅ /home/ubuntu/zippt-ai/src/routes/api/chat/+server.ts - 시스템 프롬프트 업데이트</li>
+        </ul>
+    </div>
+
+    <div class="widget-test">
+        <h2>⚠️ 주의사항</h2>
+        <p>기존 프로젝트에 13개의 타입 에러가 있으나, 이는 새 위젯 추가와 무관한 기존 이슈입니다.</p>
+        <p>새 위젯 컴포넌트 자체는 정상적으로 생성되었으며 타입 안전성을 확보했습니다.</p>
+    </div>
+</body>
+</html>

@@ -35,6 +35,8 @@
         </div>
         <div class="h-4 bg-zinc-700 rounded-full overflow-hidden">
           <div
+            role="img"
+            aria-label="{item.label}: {item.value}{data.unit || ''}"
             class="h-full rounded-full transition-all duration-500 {getBarColor(item.value, i)}"
             style="width: {getBarWidth(item.value)}%"
           ></div>

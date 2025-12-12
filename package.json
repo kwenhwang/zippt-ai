@@ -9,17 +9,31 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:ui": "vitest --ui",
+		"test:e2e": "playwright test",
+		"test:e2e:ui": "playwright test --ui",
+		"test:e2e:debug": "playwright test --debug",
+		"lighthouse": "lhci autorun",
+		"lighthouse:collect": "lhci collect",
+		"test:all": "pnpm test && pnpm test:e2e && pnpm lighthouse"
 	},
 	"devDependencies": {
 		"@internationalized/date": "^3.10.0",
+		"@lhci/cli": "^0.15.1",
 		"@lucide/svelte": "^0.544.0",
+		"@playwright/test": "^1.57.0",
 		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/kit": "^2.48.5",
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
 		"@tailwindcss/vite": "^4.1.17",
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/svelte": "^5.2.9",
 		"@types/d3-scale": "^4.0.9",
 		"@vite-pwa/sveltekit": "^1.0.1",
+		"jsdom": "^27.3.0",
 		"sharp": "^0.34.5",
 		"svelte": "^5.43.8",
 		"svelte-check": "^4.3.4",
@@ -27,11 +41,12 @@
 		"tailwindcss": "^4.1.17",
 		"typescript": "^5.9.3",
 		"vite": "^7.2.2",
-		"vite-plugin-pwa": "^1.1.0"
+		"vite-plugin-pwa": "^1.1.0",
+		"vitest": "^4.0.15"
 	},
 	"dependencies": {
 		"@ai-sdk/openai": "^2.0.73",
-		"@ai-sdk/svelte": "^3.0.103",
+		"@ai-sdk/svelte": "^3.0.108",
 		"@types/dompurify": "^3.0.5",
 		"ai": "^5.0.103",
 		"bits-ui": "^2.14.4",
@@ -43,6 +58,8 @@
 		"lucide-svelte": "^0.555.0",
 		"marked": "^17.0.1",
 		"mode-watcher": "^1.1.0",
+		"svelte-exmarkdown": "^5.0.2",
+		"svelte-sonner": "^1.0.7",
 		"tailwind-merge": "^3.4.0",
 		"zod": "^4.1.13"
 	}

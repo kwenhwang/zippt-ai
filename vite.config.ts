@@ -31,7 +31,21 @@ export default defineConfig({
 			},
 			registerType: 'autoUpdate',
 			workbox: {
-				globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+				globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+			runtimeCaching: [
+				{
+					urlPattern: /^https:\/\/sword33\.duckdns\.org\/api\/.*/i,
+					handler: 'NetworkFirst',
+					options: {
+						cacheName: 'api-cache',
+						expiration: {
+							maxEntries: 50,
+							maxAgeSeconds: 60 * 60 * 24 // 24시간
+						},
+						networkTimeoutSeconds: 10
+					}
+				}
+			]
 			}
 		})
 	]

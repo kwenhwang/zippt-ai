@@ -52,6 +52,8 @@
     <svg viewBox="0 0 100 100" class="w-32 h-32">
       {#each segments as seg}
         <path
+          role="img"
+          aria-label="{seg.label}: {seg.percentage.toFixed(0)}%"
           d={describeArc(seg.startAngle, seg.endAngle, 35)}
           fill="none"
           stroke={seg.color}

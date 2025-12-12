@@ -77,14 +77,42 @@
 
       <!-- Points -->
       {#each points as point, i}
+        <!-- 큰 투명 터치 영역 (44x44px 최소 터치 영역) -->
+        <circle
+          cx={point.x}
+          cy={point.y}
+          r="16"
+          fill="transparent"
+          class="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+          role="button"
+          tabindex="0"
+          aria-label="{formatDate(point.date)}: {formatPrice(point.price)}, {point.area}㎡"
+          on:mouseenter={() => hoveredPoint = point}
+          on:mouseleave={() => hoveredPoint = null}
+          on:touchstart={(e) => {
+            e.preventDefault();
+            hoveredPoint = point;
+          }}
+          on:touchend={(e) => {
+            e.preventDefault();
+            setTimeout(() => hoveredPoint = null, 2000);
+          }}
+          on:keydown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              hoveredPoint = hoveredPoint === point ? null : point;
+            }
+          }}
+        />
+        <!-- 실제 보이는 작은 포인트 -->
         <circle
           cx={point.x}
           cy={point.y}
           r="4"
           fill="rgb(249 115 22)"
-          class="cursor-pointer hover:r-6 transition-all"
-          on:mouseenter={() => hoveredPoint = point}
-          on:mouseleave={() => hoveredPoint = null}
+          class={hoveredPoint === point ? "transition-all" : ""}
+          style={hoveredPoint === point ? "r: 6px;" : ""}
+          pointer-events="none"
         />
       {/each}
 
