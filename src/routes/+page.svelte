@@ -70,6 +70,9 @@
 			},
 			onError: (error) => {
 				console.error('Chat error:', error);
+				// 디버그: 에러 상세 정보
+				const errMsg = error?.message || error?.toString?.() || JSON.stringify(error);
+				alert(`에러: ${errMsg}`);
 			}
 		})
 	);
