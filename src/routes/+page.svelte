@@ -1,14 +1,12 @@
 <script lang="ts">
-	import { Chat } from '@ai-sdk/svelte';
-	import type { UIMessage } from '@ai-sdk/svelte';
+	// AI SDK 제거 - 직접 fetch 구현 (모바일 스트리밍 호환성)
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
-	import { onMount, untrack } from 'svelte';
+	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { Button } from '$lib/components/ui/button';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Card } from '$lib/components/ui/card';
-	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import { Separator } from '$lib/components/ui/separator';
@@ -28,15 +26,19 @@
 	import ArrowUpIcon from '$lib/components/icons/arrow-up.svelte';
 	import StopIcon from '$lib/components/icons/stop.svelte';
 	import { WidgetRenderer } from '$lib/components/widgets';
-	import type { WidgetData } from '$lib/types/widgets';
-	import { parseWidgetFromContent, parseWidgetFromSSE } from '$lib/utils/widget-mapper';
-	import Messages from '$lib/components/messages.svelte';
-	import MultimodalInput from '$lib/components/multimodal-input.svelte';
+	import { parseWidgetFromContent } from '$lib/utils/widget-mapper';
+
+	// 메시지 타입 정의 (AI SDK UIMessage 호환)
+	interface Message {
+		id: string;
+		role: 'user' | 'assistant';
+		content: string;
+	}
 
 	interface ChatHistory {
 		id: string;
 		title: string;
-		messages: UIMessage[];
+		messages: Message[];
 		createdAt: string;
 	}
 
@@ -48,37 +50,159 @@
 	let copiedMessageId = $state<string | null>(null);
 	let isBrowser = $state(false);
 
-	// 입력 상태 관리 (Chat 클래스 외부에서 관리)
+	// 메시지 및 스트리밍 상태 (AI SDK 대체)
+	let messages = $state<Message[]>([]);
+	let isLoading = $state(false);
+	let isStreaming = $state(false);
+	let chatError = $state<string | null>(null);
+	let abortController = $state<AbortController | null>(null);
+
+	// 입력 상태 관리
 	let input = $state('');
 	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
-	// Chat 클라이언트 초기화
-	const chatClient = $derived(
-		new Chat({
-			api: '/api/chat',
-			id: currentChatId || undefined,
-			messages: untrack(() => {
-				// currentChatId가 있으면 해당 대화 로드
-				if (currentChatId) {
-					const chat = chatHistory.find((c) => c.id === currentChatId);
-					return chat?.messages || [];
-				}
-				return [];
-			}),
-			generateId: () => crypto.randomUUID(),
-			onFinish: () => {
-				saveCurrentChat();
-			},
-			onError: (error) => {
-				console.error('Chat error:', error);
+	// 스트리밍 중지
+	function stopStreaming() {
+		if (abortController) {
+			abortController.abort();
+			abortController = null;
+		}
+		isLoading = false;
+		isStreaming = false;
+	}
+
+	// 메시지 전송 (직접 fetch 구현)
+	async function sendChatMessage(userContent: string) {
+		if (!userContent.trim() || isLoading) return;
+
+		// 상태 초기화
+		isLoading = true;
+		isStreaming = false;
+		chatError = null;
+		abortController = new AbortController();
+
+		// 사용자 메시지 추가
+		const userMessage: Message = {
+			id: crypto.randomUUID(),
+			role: 'user',
+			content: userContent
+		};
+		messages = [...messages, userMessage];
+
+		// 빈 어시스턴트 메시지 추가 (스트리밍용)
+		const assistantMessage: Message = {
+			id: crypto.randomUUID(),
+			role: 'assistant',
+			content: ''
+		};
+		messages = [...messages, assistantMessage];
+
+		try {
+			const response = await fetch('/api/chat', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					messages: messages.slice(0, -1).map(m => ({ role: m.role, content: m.content }))
+				}),
+				signal: abortController.signal
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`HTTP ${response.status}: ${errorText}`);
 			}
-		})
-	);
+
+			const reader = response.body?.getReader();
+			if (!reader) throw new Error('스트림을 읽을 수 없습니다');
+
+			isStreaming = true;
+			const decoder = new TextDecoder();
+			let assistantContent = '';
+			let buffer = ''; // 불완전한 라인 버퍼링
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split('\n');
+				buffer = lines.pop() || ''; // 마지막 불완전 라인 유지
+
+				for (const line of lines) {
+					if (line.startsWith('data: ')) {
+						const data = line.slice(6);
+						if (data === '[DONE]') continue;
+
+						try {
+							const parsed = JSON.parse(data);
+							if (parsed.type === 'text-delta' && parsed.delta) {
+								assistantContent += parsed.delta;
+								// 마지막 메시지 업데이트
+								messages = [
+									...messages.slice(0, -1),
+									{ ...assistantMessage, content: assistantContent }
+								];
+							}
+						} catch {
+							// JSON 파싱 실패는 무시 (불완전한 청크)
+						}
+					}
+				}
+			}
+
+			// 남은 버퍼 처리
+			if (buffer.startsWith('data: ')) {
+				const data = buffer.slice(6);
+				if (data && data !== '[DONE]') {
+					try {
+						const parsed = JSON.parse(data);
+						if (parsed.type === 'text-delta' && parsed.delta) {
+							assistantContent += parsed.delta;
+							messages = [
+								...messages.slice(0, -1),
+								{ ...assistantMessage, content: assistantContent }
+							];
+						}
+					} catch {}
+				}
+			}
+
+			// 대화 저장
+			saveCurrentChat();
+
+		} catch (e) {
+			if (e instanceof Error && e.name === 'AbortError') {
+				// 사용자가 중지함
+				console.log('Streaming stopped by user');
+			} else {
+				chatError = e instanceof Error ? e.message : String(e);
+				console.error('Chat error:', chatError);
+				// 빈 어시스턴트 메시지 제거
+				if (messages.length > 0 && messages[messages.length - 1].content === '') {
+					messages = messages.slice(0, -1);
+				}
+			}
+		} finally {
+			isLoading = false;
+			isStreaming = false;
+			abortController = null;
+		}
+	}
 
 	// Regenerate last message
 	async function regenerate() {
-		if (chatClient.messages.length < 2) return;
-		await chatClient.regenerate();
+		if (messages.length < 2) return;
+
+		// 마지막 어시스턴트 메시지 제거
+		const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+		if (lastUserMessage) {
+			// 마지막 어시스턴트 메시지까지 제거
+			const lastAssistantIdx = messages.findLastIndex(m => m.role === 'assistant');
+			if (lastAssistantIdx !== -1) {
+				messages = messages.slice(0, lastAssistantIdx);
+			}
+			await sendChatMessage(lastUserMessage.content);
+		}
 	}
 
 	// 예시 질문 (suggested actions 스타일)
@@ -119,13 +243,9 @@
 		adjustTextareaHeight();
 	}
 
-	// UIMessage에서 텍스트 컨텐츠 추출
-	function getMessageText(message: UIMessage): string {
-		if (!message.parts) return '';
-		return message.parts
-			.filter((part) => part.type === 'text')
-			.map((part) => (part as any).text)
-			.join('');
+	// 메시지 텍스트 추출 (단순화 - content 직접 반환)
+	function getMessageText(message: Message): string {
+		return message.content || '';
 	}
 
 	// 마크다운 렌더링 함수
@@ -140,7 +260,7 @@
 
 	// 자동 스크롤 효과
 	$effect(() => {
-		if (chatClient.messages.length > 0 && chatContainer) {
+		if (messages.length > 0 && chatContainer) {
 			setTimeout(() => {
 				chatContainer?.scrollTo({
 					top: chatContainer.scrollHeight,
@@ -157,7 +277,7 @@
 
 		// 현재 대화가 있고 저장되지 않은 경우 자동 저장
 		const interval = setInterval(() => {
-			if (chatClient.messages.length > 0) {
+			if (messages.length > 0) {
 				autoSaveCurrentChat();
 			}
 		}, 5000); // 5초마다 자동 저장
@@ -190,18 +310,18 @@
 
 	// 현재 대화 자동 저장
 	function autoSaveCurrentChat() {
-		if (!currentChatId || chatClient.messages.length === 0) return;
+		if (!currentChatId || messages.length === 0) return;
 
 		const chatIndex = chatHistory.findIndex((c) => c.id === currentChatId);
 		if (chatIndex !== -1) {
-			chatHistory[chatIndex].messages = [...chatClient.messages];
+			chatHistory[chatIndex].messages = [...messages];
 			saveChatHistory();
 		}
 	}
 
 	// 대화 제목 생성 (첫 메시지 기반)
-	function generateChatTitle(messages: UIMessage[]): string {
-		const firstUserMessage = messages.find((m) => m.role === 'user');
+	function generateChatTitle(msgs: Message[]): string {
+		const firstUserMessage = msgs.find((m) => m.role === 'user');
 		if (firstUserMessage) {
 			const text = getMessageText(firstUserMessage);
 			return text.length > 50 ? text.substring(0, 50) + '...' : text;
@@ -212,27 +332,28 @@
 	// 새 대화 시작
 	function startNewChat() {
 		// 현재 대화 저장
-		if (currentChatId && chatClient.messages.length > 0) {
+		if (currentChatId && messages.length > 0) {
 			saveCurrentChat();
 		}
 
 		// 상태 초기화
-		chatClient.messages = [];
+		messages = [];
+		chatError = null;
 		currentChatId = crypto.randomUUID();
 		sheetOpen = false;
 	}
 
 	// 현재 대화 저장
 	function saveCurrentChat() {
-		if (chatClient.messages.length === 0) return;
+		if (messages.length === 0) return;
 
 		const chatId = currentChatId || crypto.randomUUID();
 		const existingIndex = chatHistory.findIndex((c) => c.id === chatId);
 
 		const chatData: ChatHistory = {
 			id: chatId,
-			title: generateChatTitle(chatClient.messages),
-			messages: [...chatClient.messages],
+			title: generateChatTitle(messages),
+			messages: [...messages],
 			createdAt: new Date().toISOString()
 		};
 
@@ -254,12 +375,13 @@
 	// 저장된 대화 불러오기
 	function loadChat(chat: ChatHistory) {
 		// 현재 대화 저장
-		if (currentChatId && chatClient.messages.length > 0) {
+		if (currentChatId && messages.length > 0) {
 			saveCurrentChat();
 		}
 
 		currentChatId = chat.id;
-		chatClient.messages = chat.messages;
+		messages = chat.messages;
+		chatError = null;
 		sheetOpen = false;
 	}
 
@@ -271,7 +393,8 @@
 
 		// 현재 대화를 삭제한 경우 초기화
 		if (currentChatId === chatId) {
-			chatClient.messages = [];
+			messages = [];
+			chatError = null;
 			currentChatId = null;
 		}
 	}
@@ -295,15 +418,12 @@
 			currentChatId = crypto.randomUUID();
 		}
 
-		await chatClient.sendMessage({
-			role: 'user',
-			parts: [{ type: 'text', text: action }]
-		});
+		await sendChatMessage(action);
 	}
 
 	// 폼 제출 처리
 	async function handleSubmit() {
-		if (!input.trim() || chatClient.status === 'submitted' || chatClient.status === 'streaming') return;
+		if (!input.trim() || isLoading || isStreaming) return;
 
 		if (!currentChatId) {
 			currentChatId = crypto.randomUUID();
@@ -317,10 +437,7 @@
 			textareaRef.style.height = 'auto';
 		}
 
-		await chatClient.sendMessage({
-			role: 'user',
-			parts: [{ type: 'text', text: message }]
-		});
+		await sendChatMessage(message);
 	}
 
 	// 날짜 포맷팅
@@ -442,7 +559,7 @@
 	<!-- 채팅 영역 -->
 	<main role="main" aria-label="채팅 메시지" class="flex-1 overflow-y-auto" bind:this={chatContainer}>
 		<div class="p-4 pb-24" aria-live="polite">
-			{#if chatClient.messages.length === 0}
+			{#if messages.length === 0}
 				<!-- 온보딩 화면 -->
 				<div class="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] gap-8">
 					<div class="text-center">
@@ -456,7 +573,7 @@
 			{:else}
 				<!-- 메시지 목록 -->
 				<div class="space-y-6 max-w-3xl mx-auto">
-					{#each chatClient.messages as message, idx (message.id)}
+					{#each messages as message, idx (message.id)}
 						<div
 							class="group/message mx-auto w-full px-4"
 							data-role={message.role}
@@ -464,18 +581,16 @@
 						>
 							{#if message.role === 'user'}
 								<!-- 사용자 메시지 (우측 정렬) -->
-								{@const userText = getMessageText(message)}
 								<div class="flex justify-end">
 									<Card
 										class="max-w-[85%] md:max-w-[75%] p-4 bg-orange-600 border-orange-600 shadow-lg"
 									>
-										<div class="whitespace-pre-wrap text-white">{userText}</div>
+										<div class="whitespace-pre-wrap text-white">{message.content}</div>
 									</Card>
 								</div>
 							{:else}
 								<!-- AI 메시지 (좌측, 아이콘 포함) -->
-								{@const messageContent = getMessageText(message)}
-								{@const parsed = parseWidgetFromContent(messageContent)}
+								{@const parsed = parseWidgetFromContent(message.content)}
 								<div class="flex gap-4 w-full">
 									<!-- AI 아이콘 -->
 									<div class="flex size-8 shrink-0 items-center justify-center rounded-full ring-1 ring-border bg-background">
@@ -497,7 +612,7 @@
 													variant="ghost"
 													size="sm"
 													class="gap-2 text-zinc-400 hover:text-zinc-200"
-													onclick={() => copyMessage(messageContent, message.id)}
+													onclick={() => copyMessage(message.content, message.id)}
 													aria-label="메시지 복사"
 												>
 													{#if copiedMessageId === message.id}
@@ -524,20 +639,18 @@
 					{/each}
 
 					<!-- 로딩 인디케이터 -->
-					{#if chatClient.status === 'submitted' || chatClient.status === 'streaming'}
+					{#if isLoading && !isStreaming}
 						<div class="flex justify-start">
 							<div class="max-w-[90%] md:max-w-[85%]">
 								<Card class="bg-zinc-800/50 border-zinc-700">
-									<TypingIndicator
-										message={chatClient.status === 'submitted' ? '요청을 처리하고 있습니다...' : '답변을 생성하고 있습니다...'}
-									/>
+									<TypingIndicator message="요청을 처리하고 있습니다..." />
 								</Card>
 							</div>
 						</div>
 					{/if}
 
 					<!-- 에러 표시 -->
-					{#if chatClient.error}
+					{#if chatError}
 						<div class="flex justify-center">
 							<Card class="p-4 bg-red-900/30 border-red-800 max-w-md">
 								<div class="flex items-center gap-3">
@@ -560,7 +673,7 @@
 	<footer role="contentinfo" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 p-4 safe-area-bottom">
 		<div class="max-w-3xl mx-auto relative flex w-full flex-col gap-4">
 			<!-- Suggested Actions (메시지 없을 때만) -->
-			{#if chatClient.messages.length === 0}
+			{#if messages.length === 0}
 				<div class="grid w-full gap-2 sm:grid-cols-2">
 					{#each suggestedActions as suggestedAction, i (suggestedAction.title)}
 						<div
@@ -598,16 +711,16 @@
 							handleSubmit();
 						}
 					}}
-					disabled={chatClient.status === 'submitted' || chatClient.status === 'streaming'}
+					disabled={isLoading || isStreaming}
 					aria-label="메시지 입력"
 				/>
 
 				<!-- 전송/정지 버튼 -->
 				<div class="absolute right-0 bottom-0 flex w-fit flex-row justify-end p-2">
-					{#if chatClient.status === 'streaming'}
+					{#if isStreaming}
 						<Button
 							class="rounded-full border min-w-11 min-h-11 p-2.5 dark:border-zinc-600"
-							onclick={() => chatClient.stop()}
+							onclick={stopStreaming}
 							aria-label="스트리밍 중지"
 						>
 							<StopIcon size={14} />
@@ -616,7 +729,7 @@
 						<Button
 							class="rounded-full border min-w-11 min-h-11 p-2.5 dark:border-zinc-600 bg-orange-600 hover:bg-orange-700 border-orange-600"
 							onclick={handleSubmit}
-							disabled={!input.trim() || chatClient.status === 'submitted'}
+							disabled={!input.trim() || isLoading}
 							aria-label="메시지 전송"
 						>
 							<ArrowUpIcon size={14} />
