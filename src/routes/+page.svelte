@@ -56,6 +56,7 @@
 	let isStreaming = $state(false);
 	let chatError = $state<string | null>(null);
 	let abortController = $state<AbortController | null>(null);
+	let thinkingStatus = $state<string | null>(null); // 도구 호출 상태 표시
 
 	// 입력 상태 관리
 	let input = $state('');
@@ -69,6 +70,20 @@
 		}
 		isLoading = false;
 		isStreaming = false;
+		thinkingStatus = null;
+	}
+
+	// 도구 이름을 한글 표시 이름으로 변환
+	function getToolDisplayName(toolName: string): string {
+		const toolNames: Record<string, string> = {
+			'get_price_stats': '시세 정보',
+			'search_complexes': '아파트 단지',
+			'get_complex_info': '단지 정보',
+			'get_recent_trades': '실거래 내역',
+			'search_api': 'API 정보',
+			'compare_prices': '가격 비교'
+		};
+		return toolNames[toolName] || toolName;
 	}
 
 	// 메시지 전송 (직접 fetch 구현)
@@ -79,6 +94,7 @@
 		isLoading = true;
 		isStreaming = false;
 		chatError = null;
+		thinkingStatus = null;
 		abortController = new AbortController();
 
 		// 사용자 메시지 추가
@@ -135,7 +151,19 @@
 
 						try {
 							const parsed = JSON.parse(data);
-							if (parsed.type === 'text-delta' && parsed.delta) {
+
+							// 도구 호출 이벤트 처리
+							if (parsed.type === 'tool-input-start') {
+								const toolName = parsed.toolName || '도구';
+								thinkingStatus = `${getToolDisplayName(toolName)} 조회 중...`;
+							} else if (parsed.type === 'tool-input-available') {
+								// 도구 입력 준비됨 - 상태 유지
+							} else if (parsed.type === 'tool-output-available') {
+								// 도구 출력 완료 - 상태 초기화
+								thinkingStatus = null;
+							} else if (parsed.type === 'text-delta' && parsed.delta) {
+								// 텍스트 응답이 시작되면 thinking 상태 해제
+								thinkingStatus = null;
 								assistantContent += parsed.delta;
 								// 마지막 메시지 업데이트
 								messages = [
@@ -185,6 +213,7 @@
 		} finally {
 			isLoading = false;
 			isStreaming = false;
+			thinkingStatus = null;
 			abortController = null;
 		}
 	}
@@ -638,14 +667,24 @@
 						</div>
 					{/each}
 
-					<!-- 로딩 인디케이터 -->
-					{#if isLoading && !isStreaming}
-						<div class="flex justify-start">
-							<div class="max-w-[90%] md:max-w-[85%]">
-								<Card class="bg-zinc-800/50 border-zinc-700">
-									<TypingIndicator message="요청을 처리하고 있습니다..." />
-								</Card>
+					<!-- 로딩/사고과정 인디케이터 -->
+					{#if thinkingStatus}
+						<div class="flex gap-4 w-full px-4">
+							<div class="flex size-8 shrink-0 items-center justify-center rounded-full ring-1 ring-border bg-background">
+								<SparklesIcon size={14} />
 							</div>
+							<Card class="bg-zinc-800/50 border-zinc-700 flex-1">
+								<TypingIndicator message={thinkingStatus} />
+							</Card>
+						</div>
+					{:else if isLoading && !isStreaming}
+						<div class="flex gap-4 w-full px-4">
+							<div class="flex size-8 shrink-0 items-center justify-center rounded-full ring-1 ring-border bg-background">
+								<SparklesIcon size={14} />
+							</div>
+							<Card class="bg-zinc-800/50 border-zinc-700 flex-1">
+								<TypingIndicator message="생각하고 있습니다..." />
+							</Card>
 						</div>
 					{/if}
 
