@@ -134,9 +134,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform', // no-transform: 프록시 변환 금지
         'Connection': 'keep-alive',
+        'Content-Encoding': 'none', // 압축 비활성화 (프록시 버퍼링 방지)
+        'X-Accel-Buffering': 'no', // Nginx/프록시 버퍼링 비활성화
         'x-vercel-ai-ui-message-stream': 'v1', // AI SDK Data Stream Protocol
         'X-RateLimit-Limit': response.headers.get('X-RateLimit-Limit') || '',
         'X-RateLimit-Remaining': response.headers.get('X-RateLimit-Remaining') || '',
