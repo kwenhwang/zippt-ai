@@ -9,7 +9,8 @@ module.exports = {
         preset: 'desktop',
         throttling: {
           cpuSlowdownMultiplier: 1
-        }
+        },
+        chromeFlags: '--no-sandbox --headless --disable-gpu'
       }
     },
     assert: {

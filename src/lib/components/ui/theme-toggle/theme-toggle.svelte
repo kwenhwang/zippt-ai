@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { toggleMode, mode } from 'mode-watcher';
+	import { Button } from "$lib/components/ui/button";
 	import Sun from 'lucide-svelte/icons/sun';
 	import Moon from 'lucide-svelte/icons/moon';
 
@@ -7,9 +8,11 @@
 	let isDark = $derived(mode.current === 'dark');
 </script>
 
-<button
+<Button
 	onclick={toggleMode}
-	class="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors touch-target"
+	variant="ghost"
+	size="icon"
+	class="rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
 	aria-label="테마 전환"
 >
 	{#if isDark}
@@ -17,4 +20,4 @@
 	{:else}
 		<Moon class="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
 	{/if}
-</button>
+</Button>

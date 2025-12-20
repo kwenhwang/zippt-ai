@@ -4,8 +4,8 @@
   "description": "부동산 실거래가, 시세 분석, 투자 조언을 AI에게 물어보세요",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#09090b",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -21,7 +21,11 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "finance", "utilities"],
+  "categories": [
+    "business",
+    "finance",
+    "utilities"
+  ],
   "lang": "ko",
   "dir": "ltr"
 }

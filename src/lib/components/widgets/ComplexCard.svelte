@@ -9,40 +9,46 @@
   }
 </script>
 
-<div class="bg-zinc-800/50 rounded-lg p-4 border border-zinc-700">
-  <div class="flex items-start gap-3">
-    <div class="p-2 bg-orange-500/20 rounded-lg">
-      <Building2 class="w-6 h-6 text-orange-500" />
+<div class="glass-card rounded-[var(--radius-2xl)] p-0 border border-[var(--border-light)] overflow-hidden transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)] hover:-translate-y-1 hover:shadow-lg">
+  <div class="p-[1.25rem]">
+    <div class="flex items-start gap-[1rem]">
+      <div class="p-[0.75rem] bg-[var(--accent-primary)]/10 rounded-[var(--radius-xl)] flex-shrink-0">
+        <Building2 class="w-6 h-6 text-[var(--accent-primary)]" strokeWidth={2.5} />
+      </div>
+      <div class="flex-1 min-w-0">
+        <h3 class="text-[var(--text-lg)] font-bold text-[var(--text-primary)] leading-tight">{data.name}</h3>
+        <p class="text-[var(--text-sm)] text-[var(--text-secondary)] flex items-center gap-1.5 mt-1 truncate">
+          <MapPin class="w-3.5 h-3.5 text-[var(--text-tertiary)]" /> {data.address}
+        </p>
+      </div>
     </div>
-    <div class="flex-1">
-      <h3 class="font-medium text-zinc-100">{data.name}</h3>
-      <p class="text-sm text-zinc-400 flex items-center gap-1 mt-1">
-        <MapPin class="w-3 h-3" /> {data.address}
-      </p>
-    </div>
-  </div>
 
-  <div class="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-zinc-700">
-    <div>
-      <p class="text-xs text-zinc-500">평균 시세</p>
-      <p class="text-lg font-bold text-orange-400">{formatPrice(data.avgPrice)}</p>
-    </div>
-    <div>
-      <p class="text-xs text-zinc-500">세대수</p>
-      <p class="text-sm text-zinc-200">{data.totalUnits.toLocaleString()}세대</p>
-    </div>
-    <div>
-      <p class="text-xs text-zinc-500">준공</p>
-      <p class="text-sm text-zinc-200">{data.buildYear}년</p>
+    <div class="grid grid-cols-3 gap-0 mt-6 divide-x divide-[var(--border-light)]">
+      <div class="pr-4">
+        <p class="text-[0.7rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1">평균 시세</p>
+        <p class="text-[var(--text-lg)] font-bold text-[var(--accent-primary)]">{formatPrice(data.avgPrice)}</p>
+      </div>
+      <div class="px-4">
+        <p class="text-[0.7rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1">세대수</p>
+        <p class="text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{data.totalUnits.toLocaleString()}</p>
+      </div>
+      <div class="pl-4">
+        <p class="text-[0.7rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1">준공년도</p>
+        <p class="text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{data.buildYear}</p>
+      </div>
     </div>
   </div>
 
   {#if data.recentTransaction}
-    <div class="mt-3 p-2 bg-zinc-900/50 rounded text-xs">
-      <span class="text-zinc-500">최근 거래:</span>
-      <span class="text-zinc-300 ml-1">
-        {data.recentTransaction.date} | {data.recentTransaction.area}㎡ | {formatPrice(data.recentTransaction.price)}
-      </span>
+    <div class="py-3 px-5 bg-[var(--bg-tertiary)]/50 border-t border-[var(--border-light)] flex items-center justify-between text-xs transition-colors hover:bg-[var(--bg-tertiary)]">
+      <span class="font-medium text-[var(--text-secondary)]">최근 실거래</span>
+      <div class="flex items-center gap-3">
+        <span class="text-[var(--text-tertiary)]">{data.recentTransaction.date}</span>
+        <span class="w-1 h-1 rounded-full bg-[var(--border-medium)]"></span>
+        <span class="font-medium text-[var(--text-primary)]">{data.recentTransaction.area}㎡</span>
+        <span class="w-1 h-1 rounded-full bg-[var(--border-medium)]"></span>
+        <span class="font-bold text-[var(--text-primary)]">{formatPrice(data.recentTransaction.price)}</span>
+      </div>
     </div>
   {/if}
 </div>

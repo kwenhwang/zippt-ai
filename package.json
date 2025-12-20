@@ -18,9 +18,11 @@
 		"test:e2e:debug": "playwright test --debug",
 		"lighthouse": "lhci autorun",
 		"lighthouse:collect": "lhci collect",
+		"check:perf": "lhci autorun && npx vite-bundle-visualizer",
 		"test:all": "pnpm test && pnpm test:e2e && pnpm lighthouse"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "^4.11.0",
 		"@internationalized/date": "^3.10.0",
 		"@lhci/cli": "^0.15.1",
 		"@lucide/svelte": "^0.544.0",
