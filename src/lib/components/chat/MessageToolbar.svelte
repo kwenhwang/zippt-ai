@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Edit2, Check } from 'lucide-svelte';
+	import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Edit2, Check, Bookmark } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import type { Message } from '$lib/types/chat';
 	import { fade } from 'svelte/transition';
@@ -50,11 +50,11 @@
 	}
 </script>
 
-<div class="flex items-center gap-1 transition-opacity duration-200" in:fade={{ duration: 150 }}>
+<div role="toolbar" aria-label="메시지 작업" class="flex items-center gap-0.5 transition-opacity duration-300" in:fade={{ duration: 200 }}>
 	<Button
 		variant="ghost"
 		size="icon-sm"
-		class="h-7 w-7 text-muted-foreground hover:text-foreground"
+		class="h-7 w-7 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors"
 		onclick={handleCopy}
 		aria-label="복사하기"
 	>
@@ -88,6 +88,16 @@
 			aria-label="싫어요"
 		>
 			<ThumbsDown class="h-3.5 w-3.5" />
+		</Button>
+
+		<Button
+			variant="ghost"
+			size="icon-sm"
+			class="h-7 w-7 text-muted-foreground hover:text-foreground"
+			onclick={() => {}}
+			aria-label="북마크"
+		>
+			<Bookmark class="h-3.5 w-3.5" />
 		</Button>
 
 		<Button

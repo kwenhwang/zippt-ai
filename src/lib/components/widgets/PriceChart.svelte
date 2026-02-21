@@ -96,9 +96,16 @@
           cy={point.y}
           r="16"
           fill="transparent"
-          class="cursor-pointer outline-none"
+          class="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2"
           role="button"
           tabindex="0"
+          aria-label="{formatDate(point.date)} {formatPrice(point.price)}"
+          on:keydown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              hoveredPoint = point;
+            }
+          }}
           on:mouseenter={() => hoveredPoint = point}
           on:mouseleave={() => hoveredPoint = null}
           on:touchstart={(e) => { e.preventDefault(); hoveredPoint = point; }}

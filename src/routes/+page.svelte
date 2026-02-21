@@ -1,39 +1,53 @@
 <script lang="ts">
-	// Premium UI/UX Redesign - Google/Apple Style
-	import { marked } from 'marked';
-	import DOMPurify from 'dompurify';
-	import { onMount, tick } from 'svelte';
-	import { fly, fade } from 'svelte/transition';
-	import { cubicOut } from 'svelte/easing';
+	// Premium UI/UX Redesign - Refactored
+	import { onMount } from 'svelte';
+	import { fly } from 'svelte/transition';
 	import { Button } from '$lib/components/ui/button';
-	import { Textarea } from '$lib/components/ui/textarea';
-	import { Card } from '$lib/components/ui/card';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as Sheet from '$lib/components/ui/sheet';
-	import { Separator } from '$lib/components/ui/separator';
-	import { TypingIndicator } from '$lib/components/ui/typing-indicator';
 	import { ThemeToggle } from '$lib/components/ui/theme-toggle';
 	import {
 		Home,
 		Menu,
 		Plus,
 		Trash2,
-		Sparkles,
-		ArrowUp,
 		ArrowDown,
-		StopCircle,
-		Check
 	} from 'lucide-svelte';
-	import { WidgetRenderer } from '$lib/components/widgets';
-	import { parseWidgetFromContent } from '$lib/utils/widget-mapper';
-	import MessageToolbar from '$lib/components/chat/MessageToolbar.svelte';
-	import CitationsBar from '$lib/components/chat/CitationsBar.svelte';
-	import type { Message, ChatHistory, Citation } from '$lib/types/chat';
 	import { toast } from 'svelte-sonner';
+
+	// Components
+	import WelcomeHero from '$lib/components/chat/WelcomeHero.svelte';
+	import ChatList from '$lib/components/chat/ChatList.svelte';
+	import ChatInput from '$lib/components/chat/ChatInput.svelte';
+	
+	import type { Message, ChatHistory } from '$lib/types/chat';
 
 	// State
 	let chatContainer: HTMLElement | null = $state(null);
+	
+	// History State Management
 	let sheetOpen = $state(false);
+	
+	function handlePopState(event: PopStateEvent) {
+		if (sheetOpen) {
+			sheetOpen = false;
+		}
+	}
+
+	$effect(() => {
+		if (sheetOpen) {
+			if (window.location.hash !== '#menu') {
+				const url = new URL(window.location.href);
+				url.hash = 'menu';
+				window.history.pushState({ menuOpen: true }, '', url);
+			}
+		} else {
+			if (window.location.hash === '#menu') {
+				window.history.back();
+			}
+		}
+	});
+
 	let chatHistory = $state<ChatHistory[]>([]);
 	let currentChatId = $state<string | null>(null);
 	let isBrowser = $state(false);
@@ -44,7 +58,6 @@
 	let isStreaming = $state(false);
 	let chatError = $state<string | null>(null);
 	let abortController = $state<AbortController | null>(null);
-	let thinkingStatus = $state<string | null>(null);
 
 	// Edit State
 	let editingMessageId = $state<string | null>(null);
@@ -52,7 +65,6 @@
 
 	// Input State
 	let input = $state('');
-	let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
 	// ---- Logic Section ----
 
@@ -63,7 +75,6 @@
 		}
 		isLoading = false;
 		isStreaming = false;
-		thinkingStatus = null;
 	}
 
 	function getToolDisplayName(toolName: string): string {
@@ -84,20 +95,16 @@
 		isLoading = true;
 		isStreaming = false;
 		chatError = null;
-		thinkingStatus = null;
 		abortController = new AbortController();
 
-		// Check if we are retrying or sending new
-		// Logic: If last message is user, we are likely regenerating or editing
-		// But here we construct a new user message if needed.
-		// However, standard flow is: Add User Msg -> Add Assistant Placeholder -> Stream
-		
 		const userMessage: Message = {
 			id: crypto.randomUUID(),
 			role: 'user',
 			content: userContent
 		};
 		messages = [...messages, userMessage];
+
+		saveCurrentChat();  // ← 사용자 메시지 추가 직후 즉시 저장
 
 		await processAssistantResponse();
 	}
@@ -107,7 +114,7 @@
             id: crypto.randomUUID(),
             role: 'assistant',
             content: '',
-            citations: [] // Initialize citations
+            citations: []
         };
         messages = [...messages, assistantMessage];
 
@@ -149,44 +156,44 @@
 
                         try {
                             const parsed = JSON.parse(data);
-
-                            // Initialize message structure if needed
-                            if (!messages[messages.length - 1].processSteps) {
-                                messages[messages.length - 1].processSteps = [];
-                            }
-                            const currentMessage = messages[messages.length - 1];
+                            const lastIdx = messages.length - 1;
 
                             if (parsed.type === 'tool-input-start') {
                                 const toolName = parsed.toolName || '도구';
                                 const stepContent = `${getToolDisplayName(toolName)} 확인 중...`;
-                                
-                                // Add new step
-                                currentMessage.processSteps = [
-                                    ...(currentMessage.processSteps || []),
-                                    { type: 'tool', content: stepContent, status: 'pending' }
-                                ];
+                                messages[lastIdx] = {
+                                    ...messages[lastIdx],
+                                    processSteps: [
+                                        ...(messages[lastIdx].processSteps || []),
+                                        { type: 'tool', content: stepContent, status: 'pending' }
+                                    ]
+                                };
                             } else if (parsed.type === 'tool-output-available') {
-                                // Mark last step as done
-                                if (currentMessage.processSteps && currentMessage.processSteps.length > 0) {
-                                    const steps = [...currentMessage.processSteps];
-                                    steps[steps.length - 1].status = 'done';
-                                    currentMessage.processSteps = steps;
+                                const currentSteps = messages[lastIdx].processSteps || [];
+                                const firstPendingIdx = currentSteps.findIndex(s => s.status === 'pending');
+                                if (firstPendingIdx !== -1) {
+                                    const updatedSteps = currentSteps.map((s, i) =>
+                                        i === firstPendingIdx ? { ...s, status: 'done' } : s
+                                    );
+                                    messages[lastIdx] = { ...messages[lastIdx], processSteps: updatedSteps };
                                 }
                             } else if (parsed.type === 'citation') {
-                                // Handle citation
-                                currentMessage.citations = [
-                                    ...(currentMessage.citations || []),
-                                    parsed.citation
-                                ];
+                                messages[lastIdx] = {
+                                    ...messages[lastIdx],
+                                    citations: [
+                                        ...(messages[lastIdx].citations || []),
+                                        parsed.citation
+                                    ]
+                                };
                             } else if (parsed.type === 'text-delta' && parsed.delta) {
                                 assistantContent += parsed.delta;
-                                currentMessage.content = assistantContent;
+                                messages[lastIdx] = { ...messages[lastIdx], content: assistantContent };
                             }
                         } catch {}
                     }
                 }
             }
-			// Flush buffer
+			
 			if (buffer.startsWith('data: ')) {
 				const data = buffer.slice(6);
 				if (data && data !== '[DONE]') {
@@ -194,7 +201,8 @@
 						const parsed = JSON.parse(data);
 						if (parsed.type === 'text-delta' && parsed.delta) {
 							assistantContent += parsed.delta;
-							messages[messages.length - 1].content = assistantContent;
+							const lastIdx = messages.length - 1;
+							messages[lastIdx] = { ...messages[lastIdx], content: assistantContent };
 						}
 					} catch {}
 				}
@@ -214,35 +222,54 @@
         } finally {
             isLoading = false;
             isStreaming = false;
-            thinkingStatus = null;
             abortController = null;
+
+            // Final cleanup of process steps for the last assistant message
+            if (messages.length > 0) {
+                const lastMsg = messages[messages.length - 1];
+                if (lastMsg.role === 'assistant' && lastMsg.processSteps) {
+                    const hasPending = lastMsg.processSteps.some(s => s.status === 'pending');
+                    if (hasPending) {
+                        const lastMsgIdx = messages.length - 1;
+                        messages[lastMsgIdx] = {
+                            ...messages[lastMsgIdx],
+                            processSteps: messages[lastMsgIdx].processSteps!.map(s => ({
+                                ...s,
+                                status: 'done' as const
+                            }))
+                        };
+                    }
+                }
+                // 스트리밍 완료/중단 시 항상 저장 (탭 이탈 후 복귀 지원)
+                const lastMsg2 = messages[messages.length - 1];
+                if (lastMsg2.role === 'assistant' && lastMsg2.content) {
+                    saveCurrentChat();
+                }
+            }
         }
 	}
 
 	async function regenerate(messageId: string) {
-		if (isLoading) return;
-		
-		// Find the message index
+		if (isLoading || isStreaming) return;
 		const msgIndex = messages.findIndex(m => m.id === messageId);
 		if (msgIndex === -1) return;
-
-		// If it's an assistant message, we regenerate the response to the PREVIOUS user message
-		// If it's a user message, we assume the user wants to retry THAT prompt (not implemented in toolbar, but logic holds)
 		
 		let targetUserIndex = -1;
 		if (messages[msgIndex].role === 'assistant') {
 			targetUserIndex = msgIndex - 1;
-		} else {
-			// Regenerating a user message doesn't make sense unless we resend it.
-			// The toolbar typically calls this on assistant message.
-			return; 
+		} else if (messages[msgIndex].role === 'user') {
+			targetUserIndex = msgIndex;
 		}
 
 		if (targetUserIndex < 0) return;
 
-		// Splice everything after the user message
+		// Truncate messages and regenerate from that user message
 		messages = messages.slice(0, targetUserIndex + 1);
 		
+		isLoading = true;
+		chatError = null;
+		abortController = new AbortController();
+
 		await processAssistantResponse();
 	}
 
@@ -260,38 +287,23 @@
 	}
 
 	async function saveEdit(messageId: string) {
-		if (!editContent.trim()) return;
+		if (!editContent.trim() || isLoading || isStreaming) return;
 		
 		const msgIndex = messages.findIndex(m => m.id === messageId);
 		if (msgIndex === -1) return;
 
-		// Update content
+		// Update content and trim everything AFTER this message
 		messages[msgIndex].content = editContent;
-		editingMessageId = null;
-
-		// Remove all subsequent messages and re-process
 		messages = messages.slice(0, msgIndex + 1);
+		
+		editingMessageId = null;
+		editContent = '';
+
+		isLoading = true;
+		chatError = null;
+		abortController = new AbortController();
+
 		await processAssistantResponse();
-	}
-
-
-	const suggestedActions = [
-		{ title: '강남구 아파트', label: '최근 시세 동향', action: '강남구 아파트 최근 시세가 어떻게 되나요?' },
-		{ title: '서울 vs 경기', label: '가격 비교 분석', action: '서울과 경기도 아파트 가격을 비교해줘' },
-		{ title: '래미안 퍼스티지', label: '상세 정보 조회', action: '래미안 퍼스티지 시세 정보 알려줘' },
-		{ title: '투자 가이드', label: '저평가 지역 추천', action: '서울에서 저평가된 아파트 지역 추천해줘' }
-	];
-
-	function adjustTextareaHeight() {
-		if (textareaRef) {
-			textareaRef.style.height = 'auto';
-			textareaRef.style.height = `${Math.min(textareaRef.scrollHeight, 200)}px`;
-		}
-	}
-
-	function setInput(value: string) {
-		input = value;
-		adjustTextareaHeight();
 	}
 
 	// Scroll State
@@ -308,15 +320,8 @@
 		chatContainer?.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
 	}
 
-	function renderMarkdown(text: string): string {
-		if (!isBrowser) return text;
-		const rawHtml = marked.parse(text) as string;
-		return DOMPurify.sanitize(rawHtml);
-	}
-
 	$effect(() => {
 		if (messages.length > 0 && chatContainer) {
-			// Auto-scroll only if we were already near bottom or it's a new message
 			const { scrollTop, scrollHeight, clientHeight } = chatContainer;
 			const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
 			
@@ -328,14 +333,27 @@
 		}
 	});
 
-
 	onMount(() => {
 		isBrowser = true;
 		loadChatHistory();
 		const interval = setInterval(() => {
 			if (messages.length > 0) autoSaveCurrentChat();
 		}, 5000);
-		return () => clearInterval(interval);
+
+		// 탭 이탈/숨김 시 즉시 저장
+		const handleHide = () => {
+			if (messages.length > 0) saveCurrentChat();
+		};
+		document.addEventListener('visibilitychange', () => {
+			if (document.visibilityState === 'hidden') handleHide();
+		});
+		window.addEventListener('pagehide', handleHide);
+
+		return () => {
+			clearInterval(interval);
+			document.removeEventListener('visibilitychange', handleHide);
+			window.removeEventListener('pagehide', handleHide);
+		};
 	});
 
 	function loadChatHistory() {
@@ -343,6 +361,19 @@
 			const stored = localStorage.getItem('chatHistory');
 			if (stored) chatHistory = JSON.parse(stored);
 		} catch (e) { console.error(e); }
+
+		// 마지막 대화 자동 복원 (탭 이탈 후 복귀 지원)
+		if (chatHistory.length > 0) {
+			const lastChat = chatHistory[0]; // 가장 최근 대화
+			if (lastChat.messages && lastChat.messages.length > 0) {
+				// 마지막 메시지가 완성된 답변인 경우만 복원
+				const lastMsg = lastChat.messages[lastChat.messages.length - 1];
+				if (lastMsg.role === 'assistant' && lastMsg.content) {
+					currentChatId = lastChat.id;
+					messages = lastChat.messages;
+				}
+			}
+		}
 	}
 
 	function saveChatHistory() {
@@ -351,11 +382,18 @@
 	}
 
 	function autoSaveCurrentChat() {
-		if (!currentChatId || messages.length === 0) return;
+		if (messages.length === 0) return;
+		if (!currentChatId) {
+			saveCurrentChat();
+			return;
+		}
 		const chatIndex = chatHistory.findIndex((c) => c.id === currentChatId);
 		if (chatIndex !== -1) {
 			chatHistory[chatIndex].messages = [...messages];
 			saveChatHistory();
+		} else {
+			// chatHistory에 없는 새 채팅 - 전체 저장
+			saveCurrentChat();
 		}
 	}
 
@@ -413,7 +451,6 @@
 		if (!currentChatId) currentChatId = crypto.randomUUID();
 		const message = input;
 		input = '';
-		if (textareaRef) textareaRef.style.height = 'auto';
 		await sendChatMessage(message);
 	}
 
@@ -421,8 +458,6 @@
 		const idx = messages.findIndex(m => m.id === messageId);
 		if (idx !== -1) {
 			messages[idx].feedback = feedback;
-			
-			// Optimistic UI update, then send to server
 			try {
 				await fetch('/api/feedback', {
 					method: 'POST',
@@ -441,9 +476,6 @@
 		toast.success('메시지가 복사되었습니다.');
 	}
 
-	// Pseudo citation extraction (if backend doesn't send explicit)
-    // We rely on backend sending 'citation' events, but we initialized it in processAssistantResponse
-
 	function formatDate(dateString: string): string {
 		const date = new Date(dateString);
 		const now = new Date();
@@ -460,6 +492,8 @@
 	<title>집피티 - 부동산 AI 파트너</title>
 	<meta name="theme-color" content="#ffffff" />
 </svelte:head>
+
+<svelte:window onpopstate={handlePopState} />
 
 <div class="flex flex-col h-[100dvh] bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-300">
 	<!-- Gradient Background Mesh (Subtle) -->
@@ -547,159 +581,33 @@
 		bind:this={chatContainer}
 		onscroll={handleScroll}
 	>
-		<div class="max-w-3xl mx-auto px-4 pt-24 pb-48 min-h-full flex flex-col justify-end min-h-[calc(100vh-120px)]">
+		<div 
+			class="max-w-3xl mx-auto px-4 pt-24 pb-48 min-h-full flex flex-col justify-end min-h-[calc(100vh-120px)]"
+			aria-live="polite"
+			aria-atomic="false"
+		>
 			{#if messages.length === 0}
-				<!-- Hero Section -->
-				<div class="flex flex-col items-center justify-center -mt-20 flex-1 space-y-8 animate-[fade-in_0.6s_ease-out]">
-					<div class="relative mb-4">
-						<div class="absolute inset-0 bg-orange-400 blur-[30px] opacity-20 rounded-full animate-pulse-slow"></div>
-						<div class="glass-card p-5 rounded-2xl shadow-xl border border-white/50 relative">
-							<Home class="w-10 h-10 text-[var(--accent-primary)]" strokeWidth={2} />
-						</div>
-					</div>
-					
-					<div class="text-center space-y-2 max-w-sm">
-						<h1 class="text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-							무엇을 도와드릴까요?
-						</h1>
-						<p class="text-[var(--text-secondary)] text-lg leading-relaxed">
-							부동산 시세부터 투자 분석까지,<br/>AI 파트너가 함께합니다.
-						</p>
-					</div>
-
-					<div class="grid w-full gap-3 sm:grid-cols-2 pt-4">
-						{#each suggestedActions as action, idx}
-							<button
-								onclick={() => setInput(action.action)}
-								class="glass-card p-4 rounded-xl text-left hover:scale-[1.02] active:scale-[0.98] transition-all border border-[var(--border-light)] hover:border-[var(--accent-primary)] group"
-								style="animation: slide-up 0.5s ease-out {0.1 + idx * 0.1}s backwards;"
-							>
-								<div class="font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-primary)] transition-colors flex items-center gap-2">
-									{action.title}
-									<ArrowUp class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity rotate-45" />
-								</div>
-								<div class="text-sm text-[var(--text-tertiary)] mt-1">{action.label}</div>
-							</button>
-						{/each}
-					</div>
-				</div>
+				<WelcomeHero onAction={(action) => {
+					input = action;
+					handleSubmit();
+				}} />
 			{:else}
-				<!-- Messages List -->
-				<div class="space-y-6">
-					{#each messages as message, idx (message.id)}
-						<div 
-							class="flex w-full {message.role === 'user' ? 'justify-end' : 'justify-start'} group/message"
-							in:fly={{ y: 20, duration: 400, easing: cubicOut }}
-						>
-							<div class="flex flex-col gap-1 max-w-[85%] sm:max-w-[75%]">
-								{#if message.role === 'assistant'}
-									<div class="flex items-center gap-2 mb-1 px-1">
-										<div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-orange-400 to-amber-300 flex items-center justify-center text-white shadow-sm">
-											<Sparkles size={14} />
-										</div>
-										<span class="text-xs font-semibold text-[var(--text-secondary)]">ZIPPT AI</span>
-									</div>
-								{/if}
-
-								<div class="
-									relative px-5 py-3.5 shadow-sm text-base leading-relaxed
-									{message.role === 'user' 
-										? 'bg-[var(--accent-primary)] text-white rounded-[20px] rounded-tr-md' 
-										: 'bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-light)] rounded-[20px] rounded-tl-md'}
-								">
-									{#if editingMessageId === message.id}
-                                        <!-- Edit Mode -->
-                                        <div class="flex flex-col gap-2">
-                                            <Textarea 
-                                                bind:value={editContent} 
-                                                class="min-h-[100px] bg-background text-foreground"
-                                            />
-                                            <div class="flex gap-2 justify-end">
-                                                <Button size="sm" variant="outline" onclick={cancelEdit}>취소</Button>
-                                                <Button size="sm" onclick={() => saveEdit(message.id)}>저장</Button>
-                                            </div>
-                                        </div>
-                                    {:else}
-                                        {#if message.role === 'assistant' && message.processSteps}
-                                            <div class="flex flex-col gap-2 mb-3">
-                                                {#each message.processSteps as step}
-                                                    <div class="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/50 px-3 py-2 rounded-lg animate-in fade-in slide-in-from-left-2 duration-300">
-                                                        {#if step.status === 'pending'}
-                                                            <div class="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                                        {:else}
-                                                            <Check class="w-3 h-3 text-green-500" />
-                                                        {/if}
-                                                        <span>{step.content}</span>
-                                                    </div>
-                                                {/each}
-                                            </div>
-                                        {/if}
-
-                                        {#if message.role === 'user'}
-                                            <div class="whitespace-pre-wrap">{message.content}</div>
-                                        {:else}
-                                            {#if !message.content && (!message.processSteps || message.processSteps.length === 0)}
-                                                 <!-- Initial loading state if no content and no steps yet -->
-                                                <div class="flex items-center gap-2 text-muted-foreground text-sm">
-                                                    <div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                                    <span>생각하는 중...</span>
-                                                </div>
-                                            {/if}
-                                            {@const parsed = parseWidgetFromContent(message.content)}
-                                            <div class="prose prose-sm max-w-none dark:prose-invert">
-                                                {@html renderMarkdown(parsed.text)}
-                                            </div>
-                                            {#if parsed.widget}
-                                                <div class="mt-4 -mx-2 sm:-mx-3">
-                                                    <WidgetRenderer widget={parsed.widget} />
-                                                </div>
-                                            {/if}
-                                        {/if}
-                                    {/if}
-
-									<!-- Citations -->
-									{#if message.citations && message.citations.length > 0}
-										<CitationsBar citations={message.citations} />
-									{/if}
-								</div>
-
-								<!-- Toolbar -->
-                                {#if !editingMessageId || editingMessageId !== message.id}
-                                    <div class="mt-1 px-1">
-                                        <MessageToolbar 
-                                            {message}
-                                            onCopy={handleCopy}
-                                            onFeedback={handleFeedback}
-                                            onRegenerate={regenerate}
-                                            onEdit={startEdit}
-                                        />
-                                    </div>
-                                {/if}
-							</div>
-						</div>
-					{/each}
-
-					<!-- Loading State (only initial connection before stream) -->
-					{#if isLoading && !isStreaming && messages[messages.length-1]?.role === 'user'}
-						<div class="flex justify-start w-full" in:fade>
-							<div class="bg-[var(--bg-card)] border border-[var(--border-light)] rounded-[20px] rounded-tl-md px-5 py-4 shadow-sm">
-								<div class="flex items-center gap-2 text-muted-foreground text-sm">
-                                    <div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                    <span>연결 중...</span>
-                                </div>
-							</div>
-						</div>
-					{/if}
-
-					{#if chatError}
-						<div class="flex justify-center py-4" in:fade>
-							<div class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm flex items-center gap-2 border border-red-100 dark:border-red-900/30">
-								<span>⚠️ {chatError}</span>
-								<button onclick={() => regenerate(messages[messages.length-1]?.id)} class="underline hover:no-underline font-medium ml-1">다시 시도</button>
-							</div>
-						</div>
-					{/if}
-				</div>
+				<ChatList 
+					{messages}
+					{isLoading}
+					{isStreaming}
+					{chatError}
+					{editingMessageId}
+					{editContent}
+					{isBrowser}
+					onRegenerate={regenerate}
+					onEditStart={startEdit}
+					onEditCancel={cancelEdit}
+					onEditSave={saveEdit}
+					onCopy={handleCopy}
+					onFeedback={handleFeedback}
+					bindEditContent={(val) => editContent = val}
+				/>
 			{/if}
 		</div>
 		
@@ -719,65 +627,13 @@
 
 	<!-- Footer Input Area -->
 	<footer class="fixed bottom-0 left-0 right-0 p-4 z-40">
-		<div class="max-w-3xl mx-auto">
-			<div class="relative glass-card rounded-[26px] shadow-lg border border-[var(--border-light)] transition-shadow duration-300 focus-within:shadow-xl focus-within:border-[var(--accent-primary)]/50 focus-within:ring-2 focus-within:ring-[var(--accent-primary)]/10">
-				<Textarea
-					bind:ref={textareaRef}
-					bind:value={input}
-					onkeydown={(e) => {
-						if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-							e.preventDefault();
-							handleSubmit();
-						}
-					}}
-					oninput={adjustTextareaHeight}
-					placeholder="메시지를 입력하세요..."
-					class="w-full bg-transparent border-none focus-visible:ring-0 resize-none py-4 pl-5 pr-14 min-h-[56px] max-h-[200px] text-[16px] leading-[1.6] placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)]"
-					rows={1}
-					disabled={isLoading || isStreaming}
-					aria-label="메시지 입력"
-				/>
-				
-				<div class="absolute right-2 bottom-2">
-					{#if isStreaming}
-						<button
-							onclick={stopStreaming}
-							class="w-11 h-11 flex items-center justify-center rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90 transition-all shadow-md active:scale-95"
-							aria-label="중지"
-						>
-							<StopCircle size={20} fill="currentColor" />
-						</button>
-					{:else}
-						<button
-							onclick={handleSubmit}
-							disabled={!input.trim() || isLoading}
-							class="w-11 h-11 flex items-center justify-center rounded-full bg-[var(--accent-primary)] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--accent-secondary)] transition-all shadow-md active:scale-95"
-							aria-label="전송"
-						>
-							<ArrowUp size={20} strokeWidth={3} />
-						</button>
-					{/if}
-				</div>
-			</div>
-			
-			<div class="text-center mt-3 text-[11px] text-[var(--text-tertiary)] font-medium">
-				AI는 부정확할 수 있습니다. 중요한 결정 시 전문가와 상담하세요.
-			</div>
-		</div>
+		<ChatInput 
+			{input}
+			{isLoading}
+			{isStreaming}
+			onInput={(val) => input = val}
+			onSubmit={handleSubmit}
+			onStop={stopStreaming}
+		/>
 	</footer>
 </div>
-
-<style>
-	/* Global overrides for specific components */
-	:global(.prose strong) { color: var(--text-primary); font-weight: 600; }
-	:global(.prose p) { color: var(--text-secondary); margin-bottom: 0.75em; }
-	:global(.prose ul) { margin-top: 0.5em; margin-bottom: 0.5em; }
-	
-	/* Mobile Optimizations */
-	@media (max-width: 640px) {
-		.glass-card {
-			backdrop-filter: blur(12px);
-			-webkit-backdrop-filter: blur(12px);
-		}
-	}
-</style>

@@ -12,7 +12,7 @@
 	onclick={toggleMode}
 	variant="ghost"
 	size="icon"
-	class="rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+	class="rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors touch-target p-2"
 	aria-label="테마 전환"
 >
 	{#if isDark}
