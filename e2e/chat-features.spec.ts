@@ -79,7 +79,7 @@ test.describe('Chat Features', () => {
 
         await editTextarea.fill('Corrected question');
 
-        const saveButton = userMessage.getByRole('button', { name: '저장' });
+        const saveButton = userMessage.getByRole('button', { name: '수정 완료' });
         await saveButton.click();
 
         await expect(userMessage).toContainText('Corrected question');
@@ -92,7 +92,7 @@ test.describe('Chat Features', () => {
         const assistantMessage = page.locator('.group\\/message').filter({ hasText: 'ZIPPT AI' }).last();
         await expect(assistantMessage).toBeVisible();
 
-        const toolbar = assistantMessage.locator('.flex.items-center.gap-1');
+        const toolbar = assistantMessage.getByRole('toolbar');
         await expect(toolbar).toBeVisible();
 
         // Basic check for aria labels

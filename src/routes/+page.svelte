@@ -59,6 +59,8 @@
 	let chatError = $state<string | null>(null);
 	let abortController = $state<AbortController | null>(null);
 
+	let streamStartTime = $state<number>(0);
+
 	// Edit State
 	let editingMessageId = $state<string | null>(null);
 	let editContent = $state('');
@@ -110,6 +112,7 @@
 	}
 
 	async function processAssistantResponse() {
+        streamStartTime = Date.now();
         const assistantMessage: Message = {
             id: crypto.randomUUID(),
             role: 'assistant',
@@ -223,6 +226,7 @@
             isLoading = false;
             isStreaming = false;
             abortController = null;
+            streamStartTime = 0;
 
             // Final cleanup of process steps for the last assistant message
             if (messages.length > 0) {
@@ -592,7 +596,7 @@
 					handleSubmit();
 				}} />
 			{:else}
-				<ChatList 
+				<ChatList
 					{messages}
 					{isLoading}
 					{isStreaming}
@@ -600,6 +604,7 @@
 					{editingMessageId}
 					{editContent}
 					{isBrowser}
+					{streamStartTime}
 					onRegenerate={regenerate}
 					onEditStart={startEdit}
 					onEditCancel={cancelEdit}

@@ -21,6 +21,7 @@
 		editingMessageId: string | null;
 		editContent: string;
 		isBrowser: boolean;
+		streamStartTime: number;
 		onRegenerate: (id: string) => void;
 		onEditStart: (id: string) => void;
 		onEditCancel: () => void;
@@ -30,14 +31,15 @@
 		bindEditContent: (val: string) => void;
 	}
 
-	let { 
-		messages, 
-		isLoading, 
-		isStreaming, 
-		chatError, 
-		editingMessageId, 
-		editContent, 
+	let {
+		messages,
+		isLoading,
+		isStreaming,
+		chatError,
+		editingMessageId,
+		editContent,
 		isBrowser,
+		streamStartTime,
 		onRegenerate,
 		onEditStart,
 		onEditCancel,
@@ -46,6 +48,41 @@
 		onFeedback,
 		bindEditContent
 	}: Props = $props();
+
+	const WAIT_MESSAGES = [
+		'AI 분석 중...',
+		'부동산 데이터 10.7M건 분석 중...',
+		'최적의 답변을 생성하고 있습니다...',
+		'거의 완성됐습니다! 잠시만 기다려주세요...',
+		'복잡한 분석입니다. 최대 2분 소요됩니다.'
+	];
+
+	let waitMsgIdx = $state(0);
+	let waitTimer = $state<ReturnType<typeof setInterval> | null>(null);
+
+	$effect(() => {
+		const lastMsg = messages[messages.length - 1];
+		const hasPending = lastMsg?.processSteps?.some((s: { status: string }) => s.status === 'pending');
+
+		if (hasPending && streamStartTime > 0) {
+			const elapsed = (Date.now() - streamStartTime) / 1000;
+			if (elapsed > 15 && !waitTimer) {
+				waitMsgIdx = Math.min(
+					Math.floor((elapsed - 15) / 15),
+					WAIT_MESSAGES.length - 1
+				);
+				waitTimer = setInterval(() => {
+					waitMsgIdx = Math.min(waitMsgIdx + 1, WAIT_MESSAGES.length - 1);
+				}, 15000);
+			}
+		} else {
+			if (waitTimer) {
+				clearInterval(waitTimer);
+				waitTimer = null;
+				waitMsgIdx = 0;
+			}
+		}
+	});
 
 	function renderMarkdown(text: string): string {
 		if (!isBrowser) return text;
@@ -93,14 +130,21 @@
 					{:else}
 						{#if message.role === 'assistant' && message.processSteps}
 							<div class="flex flex-col gap-1.5 mb-3">
-								{#each message.processSteps as step}
+								{#each message.processSteps as step, stepIdx}
+									{@const isLastPending = step.status === 'pending' && stepIdx === message.processSteps!.length - 1}
 									<div class="flex items-center gap-2 text-[11px] font-medium text-[var(--text-tertiary)] bg-[var(--bg-secondary)]/50 px-3 py-1.5 rounded-full w-fit">
 										{#if step.status === 'pending'}
 											<div class="w-2.5 h-2.5 border-2 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin"></div>
 										{:else}
 											<Check class="w-2.5 h-2.5 text-green-500" />
 										{/if}
-										<span>{step.content}</span>
+										<span>
+											{#if isLastPending && waitMsgIdx > 0}
+												{WAIT_MESSAGES[waitMsgIdx]}
+											{:else}
+												{step.content}
+											{/if}
+										</span>
 									</div>
 								{/each}
 							</div>

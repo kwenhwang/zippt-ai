@@ -31,7 +31,7 @@ export default [
         rules: {
             // Design System Enforcement
             // Ideally use a plugin like eslint-plugin-tailwindcss or customized restricted-syntax
-            // to ban "bg-[#...]" and force "bg-[var(--...)]"
+            // to ban "bg-[#hex]" and force "bg-[var(--color-name)]"
             "no-restricted-syntax": [
                 "warn",
                 {
