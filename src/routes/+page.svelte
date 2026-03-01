@@ -1,4 +1,25 @@
 <script lang="ts">
+	/*
+	  @file +page.svelte - zippt-ai 메인 채팅 페이지
+	  @status PRODUCTION - 정상 동작 중
+
+	  ## ✅ 이미 구현된 기능 (중복 구현 금지)
+	  - SSE 스트리밍 파싱 (tool-input-start/tool-output-available/citation/text-delta)
+	  - 채팅 영속성: saveCurrentChat() / loadCurrentChat() (localStorage 기반)
+	  - 탭 이탈 감지: visibilitychange / pagehide 이벤트 핸들러
+	  - 스트리밍 취소: AbortController (stopStreaming 함수)
+	  - 대기 시간 추적: streamStartTime (ChatList.svelte의 순환 메시지용)
+
+	  ## ⚠️ Svelte 5 반응성 절대 규칙
+	  - messages 배열 수정 시 반드시 배열 교체 방식 사용:
+	    ✅ messages[i] = { ...messages[i], content: x }
+	    ❌ messages[i].content = x  ← 자식 컴포넌트에 전파 안 됨!
+
+	  ## ⚠️ streamStartTime 필수
+	  - processAssistantResponse() 시작 시 반드시 Date.now() 설정
+	  - finally 블록에서 반드시 0으로 리셋
+	  - ChatList.svelte의 순환 메시지 기능이 이 값에 의존
+	*/
 	// Premium UI/UX Redesign - Refactored
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
@@ -112,6 +133,7 @@
 	}
 
 	async function processAssistantResponse() {
+        // ⚠️ ChatList.svelte의 순환 대기 메시지를 위해 필수 - 삭제 금지
         streamStartTime = Date.now();
         const assistantMessage: Message = {
             id: crypto.randomUUID(),
@@ -164,6 +186,8 @@
                             if (parsed.type === 'tool-input-start') {
                                 const toolName = parsed.toolName || '도구';
                                 const stepContent = `${getToolDisplayName(toolName)} 확인 중...`;
+                                // ⚠️ Svelte 5 필수 패턴: 배열 요소 교체로 반응성 보장
+                                // messages[lastIdx].content = x 방식은 자식 컴포넌트($props)에 전파 안 됨
                                 messages[lastIdx] = {
                                     ...messages[lastIdx],
                                     processSteps: [
@@ -226,6 +250,7 @@
             isLoading = false;
             isStreaming = false;
             abortController = null;
+            // ⚠️ 스트리밍 완료 시 반드시 리셋 (타이머 정리 트리거)
             streamStartTime = 0;
 
             // Final cleanup of process steps for the last assistant message
@@ -409,6 +434,8 @@
 		sheetOpen = false;
 	}
 
+	// ✅ 채팅 영속성 구현 완료 - localStorage 기반
+	// 탭 이탈(visibilitychange/pagehide) 시 자동 저장, 복귀 시 자동 로드
 	function saveCurrentChat() {
 		if (messages.length === 0) return;
 		const chatId = currentChatId || crypto.randomUUID();

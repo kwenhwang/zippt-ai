@@ -1,4 +1,24 @@
 <script lang="ts">
+	/*
+	  @file ChatList.svelte - 채팅 메시지 목록 렌더러
+	  @status PRODUCTION - 정상 동작 중
+
+	  ## ✅ 이미 구현된 기능 (중복 구현 금지)
+	  - processSteps 진행 단계 표시 (spinner/checkmark)
+	  - 15초 이상 대기 시 순환 메시지 자동 교체 (WAIT_MESSAGES, 15초 간격)
+	  - 마크다운 렌더링 (marked + DOMPurify)
+	  - 위젯 파싱 및 렌더링 (parseWidgetFromContent)
+	  - 메시지 편집 모드 (editingMessageId)
+	  - 인용 표시 (CitationsBar)
+
+	  ## ⚠️ streamStartTime prop 필수
+	  - page.svelte에서 반드시 전달받아야 함
+	  - 이 값이 0이면 순환 메시지 기능이 동작하지 않음
+
+	  ## ⚠️ waitTimer 메모리 누수 주의
+	  - $effect 클린업에서 clearInterval 호출 중
+	  - 컴포넌트 수정 시 타이머 정리 로직 유지 필수
+	*/
 	import { fly, fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { Sparkles, Check } from 'lucide-svelte';
@@ -49,6 +69,8 @@
 		bindEditContent
 	}: Props = $props();
 
+	// ✅ 순환 대기 메시지: 15초 이상 pending 상태 시 자동 교체 (15초 간격)
+	// Backend Queue COMPLEX 질문(60~90초) 대기 UX 개선용
 	const WAIT_MESSAGES = [
 		'AI 분석 중...',
 		'부동산 데이터 10.7M건 분석 중...',
@@ -60,6 +82,8 @@
 	let waitMsgIdx = $state(0);
 	let waitTimer = $state<ReturnType<typeof setInterval> | null>(null);
 
+	// ⚠️ 타이머 생명주기 관리: pending 감지 → 타이머 시작, 완료 → 타이머 정리
+	// clearInterval 제거 시 메모리 누수 발생
 	$effect(() => {
 		const lastMsg = messages[messages.length - 1];
 		const hasPending = lastMsg?.processSteps?.some((s: { status: string }) => s.status === 'pending');
@@ -131,7 +155,8 @@
 						{#if message.role === 'assistant' && message.processSteps}
 							<div class="flex flex-col gap-1.5 mb-3">
 								{#each message.processSteps as step, stepIdx}
-									{@const isLastPending = step.status === 'pending' && stepIdx === message.processSteps!.length - 1}
+									<!-- ⚠️ stepIdx 필수: 마지막 pending step에만 순환 메시지 적용 -->
+								{@const isLastPending = step.status === 'pending' && stepIdx === message.processSteps!.length - 1}
 									<div class="flex items-center gap-2 text-[11px] font-medium text-[var(--text-tertiary)] bg-[var(--bg-secondary)]/50 px-3 py-1.5 rounded-full w-fit">
 										{#if step.status === 'pending'}
 											<div class="w-2.5 h-2.5 border-2 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin"></div>
