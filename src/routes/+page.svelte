@@ -23,6 +23,7 @@
 	// Premium UI/UX Redesign - Refactored
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
+	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as Sheet from '$lib/components/ui/sheet';
@@ -364,9 +365,16 @@
 		}
 	});
 
-	onMount(() => {
+	onMount(async () => {
 		isBrowser = true;
 		loadChatHistory();
+
+		// SEO 페이지에서 전달된 질문 자동 실행
+		const urlQ = $page.url.searchParams.get('q');
+		if (urlQ && messages.length === 0) {
+			if (!currentChatId) currentChatId = crypto.randomUUID();
+			await sendChatMessage(urlQ);
+		}
 		const interval = setInterval(() => {
 			if (messages.length > 0) autoSaveCurrentChat();
 		}, 5000);
