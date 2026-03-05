@@ -43,6 +43,7 @@
 	
 	import type { Message, ChatHistory } from '$lib/types/chat';
 	import { generateShareCard } from '$lib/utils/share-card';
+	import { shareToKakao } from '$lib/utils/kakao-share';
 
 	// State
 	let chatContainer: HTMLElement | null = $state(null);
@@ -486,6 +487,14 @@
 		await sendChatMessage(message);
 	}
 
+	function handleKakaoShare(messageId: string) {
+		const msg = messages.find(m => m.id === messageId);
+		if (!msg || msg.role !== 'assistant' || !msg.content) return;
+		const msgIdx = messages.findIndex(m => m.id === messageId);
+		const userMsg = messages.slice(0, msgIdx).findLast(m => m.role === 'user');
+		shareToKakao(userMsg?.content || '부동산 질문', msg.content);
+	}
+
 	async function handleShareImage(messageId: string) {
 		const msg = messages.find(m => m.id === messageId);
 		if (!msg || msg.role !== 'assistant' || !msg.content) return;
@@ -679,6 +688,7 @@
 					onCopy={handleCopy}
 					onFeedback={handleFeedback}
 					onShareImage={handleShareImage}
+					onKakaoShare={handleKakaoShare}
 					bindEditContent={(val) => editContent = val}
 				/>
 			{/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Edit2, Check, Bookmark, Share2, ImageDown } from 'lucide-svelte';
+	import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Edit2, Check, Bookmark, Share2, ImageDown, MessageSquareShare } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import type { Message } from '$lib/types/chat';
 	import { fade } from 'svelte/transition';
@@ -11,9 +11,10 @@
 		onRegenerate: (id: string) => void;
 		onEdit: (id: string) => void;
 		onShareImage: (id: string) => void;
+		onKakaoShare: (id: string) => void;
 	}
 
-	let { message, onCopy, onFeedback, onRegenerate, onEdit, onShareImage }: Props = $props();
+	let { message, onCopy, onFeedback, onRegenerate, onEdit, onShareImage, onKakaoShare }: Props = $props();
 
 	let isCopied = $state(false);
 	let isShared = $state(false);
@@ -151,6 +152,17 @@
 			title="이미지 카드로 공유"
 		>
 			<ImageDown class="h-3.5 w-3.5" />
+		</Button>
+
+		<Button
+			variant="ghost"
+			size="icon-sm"
+			class="h-7 w-7 hover:text-yellow-500 text-muted-foreground transition-colors"
+			onclick={() => onKakaoShare(message.id)}
+			aria-label="카카오톡으로 공유"
+			title="카카오톡으로 공유"
+		>
+			<MessageSquareShare class="h-3.5 w-3.5" />
 		</Button>
 
 		<Button
