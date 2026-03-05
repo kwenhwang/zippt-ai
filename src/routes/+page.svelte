@@ -493,7 +493,7 @@
 				await fetch('/api/feedback', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ messageId, feedback })
+					body: JSON.stringify({ messageId, feedback, content: messages.find(m => m.id === messageId)?.content })
 				});
 				if (feedback) toast.success('피드백이 반영되었습니다.');
 			} catch (e) {

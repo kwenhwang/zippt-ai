@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Edit2, Check, Bookmark } from 'lucide-svelte';
+	import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Edit2, Check, Bookmark, Share2 } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import type { Message } from '$lib/types/chat';
 	import { fade } from 'svelte/transition';
@@ -15,6 +15,7 @@
 	let { message, onCopy, onFeedback, onRegenerate, onEdit }: Props = $props();
 
 	let isCopied = $state(false);
+	let isShared = $state(false);
 
 	async function handleCopy() {
 		try {
@@ -46,6 +47,32 @@
 		} catch (e) {
 			console.error('Failed to copy', e);
 			alert('클립보드 복사에 실패했습니다.');
+		}
+	}
+
+	async function handleShare() {
+		const shareText = message.content.slice(0, 100) + (message.content.length > 100 ? '...' : '');
+		const shareData = {
+			title: 'Zippt AI 부동산 답변',
+			text: shareText,
+			url: 'https://zippt-ai.vercel.app'
+		};
+
+		try {
+			if (navigator.share && navigator.canShare?.(shareData)) {
+				// 모바일 네이티브 공유 시트
+				await navigator.share(shareData);
+			} else {
+				// 폴백: URL 클립보드 복사
+				await navigator.clipboard.writeText('https://zippt-ai.vercel.app');
+				isShared = true;
+				setTimeout(() => { isShared = false; }, 2000);
+			}
+		} catch (e) {
+			// 사용자가 공유 취소한 경우 무시
+			if (e instanceof Error && e.name !== 'AbortError') {
+				console.error('Share failed:', e);
+			}
 		}
 	}
 </script>
@@ -88,6 +115,20 @@
 			aria-label="싫어요"
 		>
 			<ThumbsDown class="h-3.5 w-3.5" />
+		</Button>
+
+		<Button
+			variant="ghost"
+			size="icon-sm"
+			class="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors"
+			onclick={handleShare}
+			aria-label="공유하기"
+		>
+			{#if isShared}
+				<Check class="h-3.5 w-3.5 text-green-500" />
+			{:else}
+				<Share2 class="h-3.5 w-3.5" />
+			{/if}
 		</Button>
 
 		<Button

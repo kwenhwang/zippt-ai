@@ -1,0 +1,77 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 배경 그라디언트 -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f0f0f"/>
+      <stop offset="100%" stop-color="#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="20" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- 배경 -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- 오렌지 글로우 원 -->
+  <circle cx="200" cy="150" r="180" fill="#f97316" opacity="0.06" filter="url(#glow)"/>
+  <circle cx="1050" cy="500" r="150" fill="#f97316" opacity="0.04" filter="url(#glow)"/>
+
+  <!-- 좌측 오렌지 액센트 바 -->
+  <rect x="80" y="180" width="5" height="270" rx="3" fill="url(#accent)" opacity="0.8"/>
+
+  <!-- 메인 아이콘 배경 -->
+  <rect x="80" y="80" width="90" height="90" rx="24" fill="#f97316" opacity="0.15"/>
+  <rect x="84" y="84" width="82" height="82" rx="22" fill="none" stroke="#f97316" stroke-width="1" opacity="0.3"/>
+
+  <!-- 집 아이콘 (간단한 형태) -->
+  <path d="M125 108 L150 128 L150 158 L100 158 L100 128 Z" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M110 158 L110 143 L125 143 L125 158" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M92 132 L125 105 L158 132" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 브랜드명 -->
+  <text x="80" y="230" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="72" fill="white" letter-spacing="-2">Zippt AI</text>
+
+  <!-- 한글 브랜드명 -->
+  <text x="82" y="285" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif" font-weight="400" font-size="28" fill="#f97316" opacity="0.9">집피티</text>
+
+  <!-- 구분선 -->
+  <rect x="80" y="310" width="480" height="1" fill="white" opacity="0.1"/>
+
+  <!-- 메인 카피 -->
+  <text x="80" y="365" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif" font-weight="700" font-size="38" fill="white">AI 부동산 전문가에게 물어보세요</text>
+
+  <!-- 서브 카피 -->
+  <text x="80" y="415" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif" font-weight="400" font-size="24" fill="#9ca3af">실거래가 10,700,000건 · 단지 44,000개 · 즉시 답변</text>
+
+  <!-- 태그들 -->
+  <rect x="80" y="455" width="140" height="44" rx="22" fill="#f97316" opacity="0.15" stroke="#f97316" stroke-width="1" opacity="0.4"/>
+  <text x="150" y="482" font-family="Arial, sans-serif" font-size="18" fill="#f97316" text-anchor="middle" font-weight="600">아파트 시세</text>
+
+  <rect x="236" y="455" width="140" height="44" rx="22" fill="#f97316" opacity="0.15" stroke="#f97316" stroke-width="1" opacity="0.4"/>
+  <text x="306" y="482" font-family="Arial, sans-serif" font-size="18" fill="#f97316" text-anchor="middle" font-weight="600">실거래가 조회</text>
+
+  <rect x="392" y="455" width="140" height="44" rx="22" fill="#f97316" opacity="0.15" stroke="#f97316" stroke-width="1" opacity="0.4"/>
+  <text x="462" y="482" font-family="Arial, sans-serif" font-size="18" fill="#f97316" text-anchor="middle" font-weight="600">투자 분석</text>
+
+  <!-- URL -->
+  <text x="80" y="575" font-family="'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#6b7280" letter-spacing="1">zippt-ai.vercel.app</text>
+
+  <!-- 우측 데코 - 채팅 버블 -->
+  <rect x="720" y="140" width="400" height="80" rx="16" fill="white" opacity="0.04" stroke="white" stroke-width="1" opacity="0.08"/>
+  <text x="920" y="188" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif" font-size="20" fill="#9ca3af" text-anchor="middle">강남구 아파트 평균가격이 얼마인가요?</text>
+
+  <rect x="780" y="250" width="360" height="80" rx="16" fill="#f97316" opacity="0.08" stroke="#f97316" stroke-width="1" opacity="0.2"/>
+  <text x="960" y="298" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif" font-size="20" fill="#fb923c" text-anchor="middle">강남구 아파트 평균가는 28.6억원입니다 📊</text>
+
+  <rect x="720" y="360" width="400" height="80" rx="16" fill="white" opacity="0.04" stroke="white" stroke-width="1" opacity="0.08"/>
+  <text x="920" y="408" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif" font-size="20" fill="#9ca3af" text-anchor="middle">래미안 퍼스티지 최근 거래가 알려줘</text>
+
+  <rect x="780" y="470" width="360" height="80" rx="16" fill="#f97316" opacity="0.08" stroke="#f97316" stroke-width="1" opacity="0.2"/>
+  <text x="960" y="518" font-family="'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif" font-size="20" fill="#fb923c" text-anchor="middle">최근 거래가 54.5억 (2024.11) 🏢</text>
+</svg>
