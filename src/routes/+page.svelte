@@ -42,6 +42,7 @@
 	import ChatInput from '$lib/components/chat/ChatInput.svelte';
 	
 	import type { Message, ChatHistory } from '$lib/types/chat';
+	import { generateShareCard } from '$lib/utils/share-card';
 
 	// State
 	let chatContainer: HTMLElement | null = $state(null);
@@ -485,6 +486,45 @@
 		await sendChatMessage(message);
 	}
 
+	async function handleShareImage(messageId: string) {
+		const msg = messages.find(m => m.id === messageId);
+		if (!msg || msg.role !== 'assistant' || !msg.content) return;
+
+		// 직전 사용자 질문 찾기
+		const msgIdx = messages.findIndex(m => m.id === messageId);
+		const userMsg = messages.slice(0, msgIdx).findLast(m => m.role === 'user');
+
+		try {
+			const blob = await generateShareCard({
+				question: userMsg?.content || '부동산 질문',
+				answer: msg.content
+			});
+
+			const file = new File([blob], 'zippt-ai-answer.png', { type: 'image/png' });
+
+			if (navigator.share && navigator.canShare?.({ files: [file] })) {
+				// 모바일 네이티브 공유 (파일 포함)
+				await navigator.share({
+					title: 'Zippt AI 부동산 답변',
+					text: 'AI가 분석한 부동산 정보를 공유합니다.',
+					files: [file]
+				});
+			} else {
+				// 폴백: 이미지 다운로드
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = 'zippt-ai-answer.png';
+				a.click();
+				URL.revokeObjectURL(url);
+			}
+		} catch (e) {
+			if (e instanceof Error && e.name !== 'AbortError') {
+				console.error('Share image failed:', e);
+			}
+		}
+	}
+
 	async function handleFeedback(messageId: string, feedback: 'like' | 'dislike' | null) {
 		const idx = messages.findIndex(m => m.id === messageId);
 		if (idx !== -1) {
@@ -638,6 +678,7 @@
 					onEditSave={saveEdit}
 					onCopy={handleCopy}
 					onFeedback={handleFeedback}
+					onShareImage={handleShareImage}
 					bindEditContent={(val) => editContent = val}
 				/>
 			{/if}

@@ -48,6 +48,7 @@
 		onEditSave: (id: string) => void;
 		onCopy: (content: string) => void;
 		onFeedback: (id: string, type: 'like' | 'dislike' | null) => void;
+		onShareImage: (id: string) => void;
 		bindEditContent: (val: string) => void;
 	}
 
@@ -66,6 +67,7 @@
 		onEditSave,
 		onCopy,
 		onFeedback,
+		onShareImage,
 		bindEditContent
 	}: Props = $props();
 
@@ -209,6 +211,7 @@
 							onFeedback={onFeedback}
 							onRegenerate={onRegenerate}
 							onEdit={onEditStart}
+							{onShareImage}
 						/>
 					</div>
 				{/if}

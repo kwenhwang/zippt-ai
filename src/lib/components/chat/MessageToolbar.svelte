@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Edit2, Check, Bookmark, Share2 } from 'lucide-svelte';
+	import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Edit2, Check, Bookmark, Share2, ImageDown } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import type { Message } from '$lib/types/chat';
 	import { fade } from 'svelte/transition';
@@ -10,9 +10,10 @@
 		onFeedback: (id: string, feedback: 'like' | 'dislike' | null) => void;
 		onRegenerate: (id: string) => void;
 		onEdit: (id: string) => void;
+		onShareImage: (id: string) => void;
 	}
 
-	let { message, onCopy, onFeedback, onRegenerate, onEdit }: Props = $props();
+	let { message, onCopy, onFeedback, onRegenerate, onEdit, onShareImage }: Props = $props();
 
 	let isCopied = $state(false);
 	let isShared = $state(false);
@@ -139,6 +140,17 @@
 			aria-label="북마크"
 		>
 			<Bookmark class="h-3.5 w-3.5" />
+		</Button>
+
+		<Button
+			variant="ghost"
+			size="icon-sm"
+			class="h-7 w-7 text-muted-foreground hover:text-foreground transition-colors"
+			onclick={() => onShareImage(message.id)}
+			aria-label="이미지로 공유"
+			title="이미지 카드로 공유"
+		>
+			<ImageDown class="h-3.5 w-3.5" />
 		</Button>
 
 		<Button
