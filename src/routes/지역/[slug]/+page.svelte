@@ -125,6 +125,32 @@
       </section>
       {/if}
 
+      <!-- C. 평형별 시세 -->
+      {#if data.priceByArea && data.priceByArea.length > 0}
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-4 text-gray-200">
+          {region.name} 평형별 시세
+          <span class="text-xs text-gray-500 font-normal ml-2">최근 3개월 실거래 기준</span>
+        </h2>
+        <div class="grid grid-cols-2 gap-3">
+          {#each data.priceByArea as item}
+            {#if item.avg_price}
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold text-gray-200">{item.area_range}</span>
+                <span class="text-xs text-gray-500">{item.label}</span>
+              </div>
+              <div class="text-xl font-bold text-white">{item.avg_price_display}</div>
+              <div class="text-xs text-orange-400 mt-0.5">{item.avg_price_per_py?.toLocaleString()}만원/평</div>
+              <div class="text-xs text-gray-600 mt-2">거래 {item.transaction_count}건 · 중위 {item.median_price_display}</div>
+            </div>
+            {/if}
+          {/each}
+        </div>
+        <p class="text-xs text-gray-600 mt-3 text-center">* 전용면적 기준, 국토교통부 실거래 데이터</p>
+      </section>
+      {/if}
+
       <!-- 대표 질문 카드 -->
       <section class="mb-16">
         <h2 class="text-xl font-semibold mb-6 text-gray-200">

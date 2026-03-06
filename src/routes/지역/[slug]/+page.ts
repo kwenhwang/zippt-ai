@@ -15,9 +15,10 @@ export const load: PageLoad = async ({ params }) => {
   const API_BASE = 'https://korean-api-platform.vercel.app';
 
   // 병렬 호출
-  const [complexesRes, rankingsRes] = await Promise.allSettled([
+  const [complexesRes, rankingsRes, priceByAreaRes] = await Promise.allSettled([
     fetch(`${API_BASE}/api/complexes?district=${encodeURIComponent(region.name)}&limit=30`),
-    fetch(`${API_BASE}/api/stats/rankings?sort_by=price&order=desc&limit=50`)
+    fetch(`${API_BASE}/api/stats/rankings?sort_by=price&order=desc&limit=50`),
+    fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(region.name)}`)
   ]);
 
   let complexes: Array<{
@@ -74,5 +75,12 @@ export const load: PageLoad = async ({ params }) => {
     }
   }
 
-  return { region, complexes, rankInfo };
+  let priceByArea = [];
+
+  if (priceByAreaRes.status === 'fulfilled' && priceByAreaRes.value.ok) {
+    const data = await priceByAreaRes.value.json();
+    priceByArea = data?.data?.by_area || [];
+  }
+
+  return { region, complexes, rankInfo, priceByArea };
 };
