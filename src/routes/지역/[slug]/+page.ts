@@ -1,5 +1,4 @@
-import { REGIONS } from '$lib/data/regions';
-import { error } from '@sveltejs/kit';
+import { REGIONS, getRegion } from '$lib/data/regions';
 import type { PageLoad } from './$types';
 
 // 빌드 시 정적 페이지 사전 생성
@@ -9,8 +8,71 @@ export function entries() {
   return REGIONS.map(r => ({ slug: r.slug }));
 }
 
-export const load: PageLoad = ({ params }) => {
-  const region = REGIONS.find(r => r.slug === params.slug);
-  if (!region) throw error(404, '지역을 찾을 수 없습니다');
-  return { region };
+export const load: PageLoad = async ({ params }) => {
+  const region = getRegion(params.slug);
+  if (!region) return { region: null, complexes: [], rankInfo: null };
+
+  const API_BASE = 'https://korean-api-platform.vercel.app';
+
+  // 병렬 호출
+  const [complexesRes, rankingsRes] = await Promise.allSettled([
+    fetch(`${API_BASE}/api/complexes?district=${encodeURIComponent(region.name)}&limit=30`),
+    fetch(`${API_BASE}/api/stats/rankings?sort_by=price&order=desc&limit=50`)
+  ]);
+
+  let complexes: Array<{
+    complex_name: string;
+    district: string;
+    avg_price: number;
+    transaction_count: number;
+    construction_year: number | null;
+    nearest_station: string | null;
+    scores: {
+      composite: number;
+      transit: number;
+      school: number;
+      convenience: number;
+    };
+  }> = [];
+
+  let rankInfo: {
+    rank: number;
+    total: number;
+    avgPrice: string;
+    avgPricePerPy: string;
+    transactionCount: number;
+  } | null = null;
+
+  if (complexesRes.status === 'fulfilled' && complexesRes.value.ok) {
+    const data = await complexesRes.value.json();
+    const list = Array.isArray(data) ? data : (data.data || []);
+    // 종합점수 있는 것만, score 높은 순 TOP 8
+    complexes = list
+      .filter((c: { scores?: { composite?: number } }) => c.scores?.composite)
+      .sort((a: { scores: { composite: number } }, b: { scores: { composite: number } }) => b.scores.composite - a.scores.composite)
+      .slice(0, 8);
+  }
+
+  if (rankingsRes.status === 'fulfilled' && rankingsRes.value.ok) {
+    const data = await rankingsRes.value.json();
+    const rankings: Array<{
+      rank: number;
+      region_name: string;
+      avg_price_display: string;
+      avg_price_per_py_display: string;
+      transaction_count: number;
+    }> = data?.data?.rankings || [];
+    const match = rankings.find(r => r.region_name?.includes(region.name));
+    if (match) {
+      rankInfo = {
+        rank: match.rank,
+        total: rankings.length,
+        avgPrice: match.avg_price_display,
+        avgPricePerPy: match.avg_price_per_py_display,
+        transactionCount: match.transaction_count
+      };
+    }
+  }
+
+  return { region, complexes, rankInfo };
 };
