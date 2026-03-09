@@ -4,7 +4,8 @@
  */
 
 export interface RegionData {
-  slug: string;         // URL 슬러그
+  slug: string;         // 기존 한글 slug (하위호환용)
+  slugEn: string;       // 새 영문 slug
   name: string;         // 지역명
   type: '구' | '시';
   description: string;  // SEO 메타 설명
@@ -15,167 +16,167 @@ export interface RegionData {
 export const REGIONS: RegionData[] = [
   // 서울 강남권
   {
-    slug: '강남구', name: '강남구', type: '구',
+    slug: '강남구', slugEn: 'gangnam', name: '강남구', type: '구',
     description: '강남구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['강남구 아파트 평균 매매가가 얼마인가요?', '강남구 전세가율이 어떻게 되나요?', '강남구에서 투자하기 좋은 단지를 추천해줘'],
     keywords: ['강남구 아파트 시세', '강남구 실거래가', '강남구 부동산']
   },
   {
-    slug: '서초구', name: '서초구', type: '구',
+    slug: '서초구', slugEn: 'seocho', name: '서초구', type: '구',
     description: '서초구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['서초구 아파트 평균 가격이 얼마인가요?', '서초구 래미안 아파트 시세 알려줘', '서초구 전세 구하기 좋은 단지는?'],
     keywords: ['서초구 아파트 시세', '서초구 실거래가', '서초구 부동산']
   },
   {
-    slug: '송파구', name: '송파구', type: '구',
+    slug: '송파구', slugEn: 'songpa', name: '송파구', type: '구',
     description: '송파구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['잠실 아파트 평균 시세가 얼마인가요?', '송파구 헬리오시티 최근 거래가 알려줘', '송파구 전세가 얼마인가요?'],
     keywords: ['송파구 아파트 시세', '잠실 아파트 시세', '송파구 부동산']
   },
   // 서울 마용성
   {
-    slug: '마포구', name: '마포구', type: '구',
+    slug: '마포구', slugEn: 'mapo', name: '마포구', type: '구',
     description: '마포구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['마포구 아파트 평균 가격이 얼마인가요?', '마포구 공덕 아파트 시세 알려줘', '마포구 아파트 투자 전망은?'],
     keywords: ['마포구 아파트 시세', '마포구 실거래가', '공덕 아파트 시세']
   },
   {
-    slug: '용산구', name: '용산구', type: '구',
+    slug: '용산구', slugEn: 'yongsan', name: '용산구', type: '구',
     description: '용산구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['용산구 아파트 평균 매매가는?', '용산구 한강 조망 아파트 시세', '이촌동 아파트 최근 거래가 알려줘'],
     keywords: ['용산구 아파트 시세', '이촌동 아파트', '용산 부동산']
   },
   {
-    slug: '성동구', name: '성동구', type: '구',
+    slug: '성동구', slugEn: 'seongdong', name: '성동구', type: '구',
     description: '성동구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['성동구 아파트 평균 가격은?', '왕십리 아파트 시세 알려줘', '성동구 전세 시세는?'],
     keywords: ['성동구 아파트 시세', '왕십리 아파트', '성동구 부동산']
   },
   // 서울 기타
   {
-    slug: '영등포구', name: '영등포구', type: '구',
+    slug: '영등포구', slugEn: 'yeongdeungpo', name: '영등포구', type: '구',
     description: '영등포구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['영등포구 아파트 평균 가격은?', '여의도 아파트 시세 알려줘', '영등포구 투자 추천 단지는?'],
     keywords: ['영등포구 아파트 시세', '여의도 아파트', '영등포 부동산']
   },
   {
-    slug: '노원구', name: '노원구', type: '구',
+    slug: '노원구', slugEn: 'nowon', name: '노원구', type: '구',
     description: '노원구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['노원구 아파트 평균 가격은?', '노원구 저렴한 아파트 추천해줘', '상계동 아파트 시세는?'],
     keywords: ['노원구 아파트 시세', '상계동 아파트', '노원 부동산']
   },
   {
-    slug: '강동구', name: '강동구', type: '구',
+    slug: '강동구', slugEn: 'gangdong', name: '강동구', type: '구',
     description: '강동구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['강동구 아파트 평균 가격은?', '둔촌주공 재건축 시세 알려줘', '강동구 투자 전망은?'],
     keywords: ['강동구 아파트 시세', '둔촌주공', '강동 부동산']
   },
   {
-    slug: '강서구', name: '강서구', type: '구',
+    slug: '강서구', slugEn: 'gangseo', name: '강서구', type: '구',
     description: '강서구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['강서구 아파트 평균 가격은?', '마곡지구 아파트 시세', '강서구 전세 시세는?'],
     keywords: ['강서구 아파트 시세', '마곡 아파트', '강서 부동산']
   },
   // 서울 기타 (추가)
   {
-    slug: '강북구', name: '강북구', type: '구',
+    slug: '강북구', slugEn: 'gangbuk', name: '강북구', type: '구',
     description: '강북구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['강북구 아파트 평균 매매가가 얼마인가요?', '미아동 아파트 시세는 어떻게 되나요?', '수유역 근처 투자하기 좋은 단지 추천해줘'],
     keywords: ['강북구 아파트 시세', '강북구 실거래가', '강북구 부동산']
   },
   {
-    slug: '관악구', name: '관악구', type: '구',
+    slug: '관악구', slugEn: 'gwanak', name: '관악구', type: '구',
     description: '관악구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['관악구 아파트 평균 매매가가 얼마인가요?', '신림동 아파트 전세 시세는 어떻게 되나요?', '봉천동 투자하기 좋은 단지 추천해줘'],
     keywords: ['관악구 아파트 시세', '관악구 실거래가', '관악구 부동산']
   },
   {
-    slug: '광진구', name: '광진구', type: '구',
+    slug: '광진구', slugEn: 'gwangjin', name: '광진구', type: '구',
     description: '광진구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['광진구 아파트 평균 매매가가 얼마인가요?', '건대 근처 아파트 전세 시세는 어떻게 되나요?', '구의동 투자하기 좋은 단지 추천해줘'],
     keywords: ['광진구 아파트 시세', '광진구 실거래가', '광진구 부동산']
   },
   {
-    slug: '구로구', name: '구로구', type: '구',
+    slug: '구로구', slugEn: 'guro', name: '구로구', type: '구',
     description: '구로구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['구로구 아파트 평균 매매가가 얼마인가요?', '구로디지털단지 아파트 전세 시세는 어떻게 되나요?', '신도림 투자하기 좋은 단지 추천해줘'],
     keywords: ['구로구 아파트 시세', '구로구 실거래가', '구로구 부동산']
   },
   {
-    slug: '금천구', name: '금천구', type: '구',
+    slug: '금천구', slugEn: 'geumcheon', name: '금천구', type: '구',
     description: '금천구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['금천구 아파트 평균 매매가가 얼마인가요?', '가산디지털단지 아파트 전세 시세는 어떻게 되나요?', '시흥동 투자하기 좋은 단지 추천해줘'],
     keywords: ['금천구 아파트 시세', '금천구 실거래가', '금천구 부동산']
   },
   {
-    slug: '도봉구', name: '도봉구', type: '구',
+    slug: '도봉구', slugEn: 'dobong', name: '도봉구', type: '구',
     description: '도봉구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['도봉구 아파트 평균 매매가가 얼마인가요?', '도봉구 전세 시세는 어떻게 되나요?', '쌍문동 방학동 투자하기 좋은 단지 추천해줘'],
     keywords: ['도봉구 아파트 시세', '도봉구 실거래가', '도봉구 부동산']
   },
   {
-    slug: '동대문구', name: '동대문구', type: '구',
+    slug: '동대문구', slugEn: 'dongdaemun', name: '동대문구', type: '구',
     description: '동대문구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['동대문구 아파트 평균 매매가가 얼마인가요?', '동대문구 전세 시세는 어떻게 되나요?', '장안동 답십리 투자하기 좋은 단지 추천해줘'],
     keywords: ['동대문구 아파트 시세', '동대문구 실거래가', '동대문구 부동산']
   },
   {
-    slug: '동작구', name: '동작구', type: '구',
+    slug: '동작구', slugEn: 'dongjak', name: '동작구', type: '구',
     description: '동작구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['동작구 아파트 평균 매매가가 얼마인가요?', '동작구 전세 시세는 어떻게 되나요?', '흑석동 사당동 투자하기 좋은 단지 추천해줘'],
     keywords: ['동작구 아파트 시세', '동작구 실거래가', '동작구 부동산']
   },
   {
-    slug: '서대문구', name: '서대문구', type: '구',
+    slug: '서대문구', slugEn: 'seodaemun', name: '서대문구', type: '구',
     description: '서대문구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['서대문구 아파트 평균 매매가가 얼마인가요?', '서대문구 전세 시세는 어떻게 되나요?', '홍제동 신촌 투자하기 좋은 단지 추천해줘'],
     keywords: ['서대문구 아파트 시세', '서대문구 실거래가', '서대문구 부동산']
   },
   {
-    slug: '성북구', name: '성북구', type: '구',
+    slug: '성북구', slugEn: 'seongbuk', name: '성북구', type: '구',
     description: '성북구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['성북구 아파트 평균 매매가가 얼마인가요?', '성북구 전세 시세는 어떻게 되나요?', '길음동 정릉 투자하기 좋은 단지 추천해줘'],
     keywords: ['성북구 아파트 시세', '성북구 실거래가', '성북구 부동산']
   },
   {
-    slug: '양천구', name: '양천구', type: '구',
+    slug: '양천구', slugEn: 'yangcheon', name: '양천구', type: '구',
     description: '양천구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['양천구 아파트 평균 매매가가 얼마인가요?', '양천구 전세 시세는 어떻게 되나요?', '목동 신정동 투자하기 좋은 단지 추천해줘'],
     keywords: ['양천구 아파트 시세', '양천구 실거래가', '양천구 부동산']
   },
   {
-    slug: '은평구', name: '은평구', type: '구',
+    slug: '은평구', slugEn: 'eunpyeong', name: '은평구', type: '구',
     description: '은평구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['은평구 아파트 평균 매매가가 얼마인가요?', '은평구 전세 시세는 어떻게 되나요?', '불광동 진관동 투자하기 좋은 단지 추천해줘'],
     keywords: ['은평구 아파트 시세', '은평구 실거래가', '은평구 부동산']
   },
   {
-    slug: '종로구', name: '종로구', type: '구',
+    slug: '종로구', slugEn: 'jongno', name: '종로구', type: '구',
     description: '종로구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['종로구 아파트 평균 매매가가 얼마인가요?', '종로구 전세 시세는 어떻게 되나요?', '평창동 부암동 투자하기 좋은 단지 추천해줘'],
     keywords: ['종로구 아파트 시세', '종로구 실거래가', '종로구 부동산']
   },
   {
-    slug: '중구', name: '중구', type: '구',
+    slug: '중구', slugEn: 'jung', name: '중구', type: '구',
     description: '중구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['중구 아파트 평균 매매가가 얼마인가요?', '중구 전세 시세는 어떻게 되나요?', '황학동 신당동 투자하기 좋은 단지 추천해줘'],
     keywords: ['중구 아파트 시세', '중구 실거래가', '중구 부동산']
   },
   {
-    slug: '중랑구', name: '중랑구', type: '구',
+    slug: '중랑구', slugEn: 'jungnang', name: '중랑구', type: '구',
     description: '중랑구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요. 10.7M 실거래 데이터 기반 즉시 답변.',
     questions: ['중랑구 아파트 평균 매매가가 얼마인가요?', '중랑구 전세 시세는 어떻게 되나요?', '묵동 신내동 투자하기 좋은 단지 추천해줘'],
     keywords: ['중랑구 아파트 시세', '중랑구 실거래가', '중랑구 부동산']
   },
   // 경기도
   {
-    slug: '분당구', name: '분당구', type: '구',
+    slug: '분당구', slugEn: 'bundang', name: '분당구', type: '구',
     description: '분당구 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['분당 아파트 평균 가격은?', '판교 아파트 시세 알려줘', '분당 전세 시세는?'],
     keywords: ['분당 아파트 시세', '판교 아파트', '분당 부동산']
   },
   {
-    slug: '수원시', name: '수원시', type: '시',
+    slug: '수원시', slugEn: 'suwon', name: '수원시', type: '시',
     description: '수원시 아파트 실거래가, 시세, 투자 정보를 AI에게 물어보세요.',
     questions: ['수원시 아파트 평균 가격은?', '광교 아파트 시세 알려줘', '수원시 투자 추천 지역은?'],
     keywords: ['수원 아파트 시세', '광교 아파트', '수원 부동산']
@@ -183,5 +184,9 @@ export const REGIONS: RegionData[] = [
 ];
 
 export function getRegion(slug: string): RegionData | undefined {
-  return REGIONS.find(r => r.slug === slug);
+  return REGIONS.find(r => r.slugEn === slug || r.slug === slug);
+}
+
+export function getRegionEntries() {
+  return REGIONS.map(r => ({ slug: r.slugEn }));
 }
