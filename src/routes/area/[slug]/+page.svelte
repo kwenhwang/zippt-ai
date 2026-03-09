@@ -54,6 +54,13 @@
         </p>
       </div>
 
+      <!-- 지역 전문가 맥락 -->
+      {#if region.context}
+      <div class="mb-8 p-4 rounded-xl bg-orange-500/5 border border-orange-500/15">
+        <p class="text-sm text-gray-300 leading-relaxed">{region.context}</p>
+      </div>
+      {/if}
+
       <!-- A. 지역 시세 요약 카드 -->
       {#if data.rankInfo}
       <section class="mb-10">
@@ -71,7 +78,7 @@
             <div class="text-xs text-gray-500 mt-1">시세 순위</div>
           </div>
         </div>
-        <p class="text-xs text-gray-600 mt-2 text-center">* 국토교통부 실거래가 기준, 최근 3개월 {data.rankInfo.transactionCount.toLocaleString()}건</p>
+        <p class="text-xs text-gray-600 mt-2 text-center">* 국토교통부 실거래가 최근 3개월 기준 · 거래 {data.rankInfo.transactionCount.toLocaleString()}건</p>
       </section>
       {/if}
 
@@ -79,8 +86,8 @@
       {#if data.complexes.length > 0}
       <section class="mb-10">
         <h2 class="text-lg font-semibold mb-4 text-gray-200">
-          {region.name} 단지 종합점수 TOP
-          <span class="text-xs text-gray-500 font-normal ml-2">교통·학군·편의 종합</span>
+          {region.name} 주요 단지 분석
+          <span class="text-xs text-gray-500 font-normal ml-2">교통·학군·편의 종합점수 순</span>
         </h2>
         <div class="space-y-2">
           {#each data.complexes as complex, i}
@@ -102,7 +109,7 @@
                 <div class="flex items-center gap-3 text-right">
                   <div>
                     <div class="text-sm font-bold text-white">{(complex.avg_price / 10000).toFixed(1)}억</div>
-                    <div class="text-xs text-gray-500">평균 거래가</div>
+                    <div class="text-xs text-gray-500">역대 평균가</div>
                   </div>
                   <div class="bg-orange-500/10 border border-orange-500/20 rounded-lg px-2 py-1 text-center min-w-[52px]">
                     <div class="text-sm font-bold text-orange-400">{complex.scores.composite}</div>
@@ -122,6 +129,42 @@
           {/each}
         </div>
         <p class="text-xs text-gray-600 mt-3 text-center">클릭하면 AI가 해당 단지 실거래 상세 분석을 제공합니다</p>
+      </section>
+      {/if}
+
+      <!-- 가성비 TOP 3 -->
+      {#if data.valueCoplexes && data.valueCoplexes.length > 0}
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-4 text-gray-200">
+          {region.name} 가성비 단지
+          <span class="text-xs text-gray-500 font-normal ml-2">종합점수 대비 가격 효율 순</span>
+        </h2>
+        <div class="space-y-2">
+          {#each data.valueCoplexes as complex, i}
+            <button
+              onclick={() => askQuestion(`${complex.complex_name} 아파트 투자 가치와 최근 시세 분석해줘`)}
+              class="w-full text-left p-4 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all duration-200 group"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="text-xs font-bold text-green-400 w-5">{i + 1}</span>
+                  <div>
+                    <div class="font-medium text-gray-200 text-sm group-hover:text-white">{complex.complex_name}</div>
+                    <div class="text-xs text-gray-500 mt-0.5">
+                      {complex.nearest_station ? `${complex.nearest_station}역` : ''}
+                      {complex.construction_year ? `· ${complex.construction_year}년` : ''}
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm font-bold text-green-400">{(complex.avg_price / 10000).toFixed(1)}억</div>
+                  <div class="text-xs text-gray-500">점수 {complex.scores.composite}</div>
+                </div>
+              </div>
+            </button>
+          {/each}
+        </div>
+        <p class="text-xs text-gray-600 mt-3 text-center">낮은 가격 대비 높은 점수 = 상대적 저평가 단지</p>
       </section>
       {/if}
 
