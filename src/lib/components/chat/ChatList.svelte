@@ -30,7 +30,7 @@
 	import CitationsBar from '$lib/components/chat/CitationsBar.svelte';
 	import ThinkingIndicator from '$lib/components/chat/ThinkingIndicator.svelte';
 	import { WidgetRenderer } from '$lib/components/widgets';
-	import { parseWidgetFromContent } from '$lib/utils/widget-mapper';
+	import { parseWidgetFromContent, parseWidgetFromToolResult } from '$lib/utils/widget-mapper';
 	import type { Message } from '$lib/types/chat';
 
 	interface Props {
@@ -175,6 +175,14 @@
 											{/if}
 										</span>
 									</div>
+									{#if step.type === 'tool' && step.status === 'done' && step.toolResult}
+										{@const toolWidget = parseWidgetFromToolResult(step.toolResult)}
+										{#if toolWidget}
+											<div class="mt-2">
+												<WidgetRenderer widget={toolWidget} />
+											</div>
+										{/if}
+									{/if}
 								{/each}
 							</div>
 						{/if}

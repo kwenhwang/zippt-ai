@@ -1,12 +1,15 @@
-import { getRegion, getRegionEntries } from '$lib/data/regions';
+import { getRegion } from '$lib/data/regions';
 
-export const prerender = true;
+// prerender 제거, ISR 설정으로 교체
+export const config = {
+  isr: {
+    expiration: 604800 // 7일 (초 단위)
+  }
+};
 
-export function entries() {
-  return getRegionEntries();
-}
+// entries() 함수 제거 (ISR에서는 불필요)
 
-export async function load({ params }: { params: { slug: string } }) {
+export async function load({ params }) {
   const region = getRegion(params.slug);
   if (!region) return { region: null, complexes: [], rankInfo: null, priceByArea: [] };
 
@@ -18,73 +21,29 @@ export async function load({ params }: { params: { slug: string } }) {
     fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(region.name)}`)
   ]);
 
-  let complexes: Array<{
-    complex_name: string;
-    district: string;
-    avg_price: number;
-    transaction_count: number;
-    construction_year: number | null;
-    nearest_station: string | null;
-    scores: {
-      composite: number;
-      transit: number;
-      school: number;
-      convenience: number;
-    };
-  }> = [];
-
-  let rankInfo: {
-    rank: number;
-    total: number;
-    avgPrice: string;
-    avgPricePerPy: string;
-    transactionCount: number;
-  } | null = null;
-
+  let complexes: any[] = [];
+  let rankInfo = null;
   let priceByArea: any[] = [];
-
-  let valueCoplexes: any[] = [];
 
   if (complexesRes.status === 'fulfilled' && complexesRes.value.ok) {
     const data = await complexesRes.value.json();
     const list = Array.isArray(data) ? data : (data.data || []);
-
-    // 중복 단지명 제거 (같은 complex_name의 첫 번째만)
     const seen = new Set<string>();
     const unique = list.filter((c: any) => {
       if (seen.has(c.complex_name)) return false;
       seen.add(c.complex_name);
       return true;
     });
-
-    // 종합점수 상위 8개
     complexes = unique
       .filter((c: any) => c.scores?.composite)
       .sort((a: any, b: any) => b.scores.composite - a.scores.composite)
       .slice(0, 8);
-
-    // 가성비 TOP 3 (점수 / 가격 비율이 높은 것)
-    // avg_price가 0이면 제외
-    valueCoplexes = unique
-      .filter((c: any) => c.scores?.composite && c.avg_price > 0)
-      .map((c: any) => ({
-        ...c,
-        valueScore: (c.scores.composite / (c.avg_price / 10000)) // 점수/억원
-      }))
-      .sort((a: any, b: any) => b.valueScore - a.valueScore)
-      .slice(0, 3);
   }
 
   if (rankingsRes.status === 'fulfilled' && rankingsRes.value.ok) {
     const data = await rankingsRes.value.json();
-    const rankings: Array<{
-      rank: number;
-      region_name: string;
-      avg_price_display: string;
-      avg_price_per_py_display: string;
-      transaction_count: number;
-    }> = data?.data?.rankings || [];
-    const match = rankings.find((r) => r.region_name?.includes(region.name));
+    const rankings = data?.data?.rankings || [];
+    const match = rankings.find((r: any) => r.region_name?.includes(region.name));
     if (match) {
       rankInfo = {
         rank: match.rank,
@@ -101,5 +60,5 @@ export async function load({ params }: { params: { slug: string } }) {
     priceByArea = data?.data?.by_area || [];
   }
 
-  return { region, complexes, rankInfo, priceByArea, valueCoplexes };
+  return { region, complexes, rankInfo, priceByArea };
 }

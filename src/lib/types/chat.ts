@@ -14,6 +14,7 @@ export interface Message {
         type: 'tool' | 'thinking';
         content: string;
         status: 'pending' | 'done';
+        toolResult?: unknown;
     }[];
 }
 

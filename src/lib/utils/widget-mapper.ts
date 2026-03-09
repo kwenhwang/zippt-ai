@@ -119,6 +119,68 @@ export function parseWidgetFromSSE(eventData: any): WidgetData | null {
 }
 
 /**
+ * tool-output-available 결과에서 위젯 데이터 파싱
+ */
+export function parseWidgetFromToolResult(toolResult: unknown): WidgetData | null {
+  try {
+    const result = typeof toolResult === 'string' ? JSON.parse(toolResult) : toolResult;
+    if (!result || typeof result !== 'object') return null;
+    const r = result as Record<string, unknown>;
+
+    // 직접 widget 키가 있는 경우 (백엔드가 widget 블록을 명시적으로 내려주는 경우)
+    const widget = r['widget'] as Record<string, unknown> | undefined;
+    if (widget && typeof widget.type === 'string' && TYPE_MAP[widget.type]) {
+      return mapApiCatalogWidget(widget as unknown as ApiCatalogChartData);
+    }
+
+    // result.data 가 rankings 배열인 경우 (지역별 시세 순위)
+    const data = r['data'] as Record<string, unknown> | undefined;
+    if (data && Array.isArray(data['rankings'])) {
+      const rankings = data['rankings'] as Record<string, unknown>[];
+      return {
+        type: 'rankings_table',
+        title: (data['title'] as string | undefined) || '지역별 시세 순위',
+        metric: 'price',
+        items: rankings.slice(0, 10).map((item, i) => ({
+          rank: typeof item['rank'] === 'number' ? item['rank'] : i + 1,
+          name: String(
+            (item['region_name'] as string | undefined)?.replace('서울특별시 ', '') ||
+            item['name'] ||
+            ''
+          ),
+          value: typeof item['avg_price'] === 'number' ? item['avg_price'] : 0,
+          change: typeof item['change_rate'] === 'number' ? item['change_rate'] : undefined
+        }))
+      } satisfies RankingsTableData;
+    }
+
+    // result.data 가 by_area 배열인 경우 (평형별 시세)
+    if (data && Array.isArray(data['by_area'])) {
+      const byArea = (data['by_area'] as Record<string, unknown>[]).filter(
+        (a) => a['avg_price'] !== undefined && a['avg_price'] !== null
+      );
+      const district = data['district'] as string | undefined;
+      return {
+        type: 'compare_table',
+        items: byArea.map((a) => ({
+          name: String(a['label'] || a['area_range'] || ''),
+          avgPrice: typeof a['avg_price'] === 'number' ? a['avg_price'] : 0,
+          pricePerPyeong: typeof a['avg_price_per_py'] === 'number' ? a['avg_price_per_py'] : 0,
+          totalUnits: typeof a['transaction_count'] === 'number' ? a['transaction_count'] : 0,
+          buildYear: 0
+        })),
+        // CompareTableData 에는 title 필드가 없으므로 items 에 포함
+        ...(district ? {} : {})
+      } satisfies CompareTableData;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 메시지 내용에서 위젯 JSON 블록 추출 (기존 방식 호환)
  */
 export function parseWidgetFromContent(content: string): { text: string; widget: WidgetData | null } {

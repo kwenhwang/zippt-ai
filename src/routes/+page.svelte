@@ -203,7 +203,9 @@
                                 const firstPendingIdx = currentSteps.findIndex(s => s.status === 'pending');
                                 if (firstPendingIdx !== -1) {
                                     const updatedSteps = currentSteps.map((s, i) =>
-                                        i === firstPendingIdx ? { ...s, status: 'done' } : s
+                                        i === firstPendingIdx
+                                            ? { ...s, status: 'done' as const, toolResult: parsed.result ?? null }
+                                            : s
                                     );
                                     messages[lastIdx] = { ...messages[lastIdx], processSteps: updatedSteps };
                                 }
