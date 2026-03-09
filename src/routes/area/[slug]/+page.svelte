@@ -1,9 +1,73 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
 
   let { data }: { data: PageData } = $props();
   const region = data.region;
+
+  let rankInfo = $state(data.rankInfo);
+  let complexes = $state(data.complexes);
+  let priceByArea = $state(data.priceByArea);
+
+  onMount(async () => {
+    if (!data.region) return;
+    const API_BASE = 'https://korean-api-platform.vercel.app';
+    const district = data.region.name;
+
+    // rankInfo 없으면 rankings API 호출
+    if (!rankInfo) {
+      try {
+        const res = await fetch(`${API_BASE}/api/stats/rankings?sort_by=price&order=desc&limit=50`);
+        if (res.ok) {
+          const json = await res.json();
+          const rankings = json?.data?.rankings || [];
+          const match = rankings.find((r: any) => r.region_name?.includes(district));
+          if (match) {
+            rankInfo = {
+              rank: match.rank,
+              total: rankings.length,
+              avgPrice: match.avg_price_display,
+              avgPricePerPy: match.avg_price_per_py_display,
+              transactionCount: match.transaction_count
+            };
+          }
+        }
+      } catch {}
+    }
+
+    // complexes 없으면 complexes API 호출
+    if (!complexes || complexes.length === 0) {
+      try {
+        const res = await fetch(`${API_BASE}/api/complexes?district=${encodeURIComponent(district)}&limit=30&period_months=3`);
+        if (res.ok) {
+          const json = await res.json();
+          const list = Array.isArray(json) ? json : (json.data || []);
+          const seen = new Set<string>();
+          const unique = list.filter((c: any) => {
+            if (seen.has(c.complex_name)) return false;
+            seen.add(c.complex_name);
+            return true;
+          });
+          complexes = unique
+            .filter((c: any) => c.scores?.composite)
+            .sort((a: any, b: any) => b.scores.composite - a.scores.composite)
+            .slice(0, 8);
+        }
+      } catch {}
+    }
+
+    // priceByArea 없으면 price-by-area API 호출
+    if (!priceByArea || priceByArea.length === 0) {
+      try {
+        const res = await fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(district)}`);
+        if (res.ok) {
+          const json = await res.json();
+          priceByArea = json?.data?.by_area || [];
+        }
+      } catch {}
+    }
+  });
 
   function askQuestion(question: string) {
     // 메인 페이지로 이동하며 질문 전달
@@ -62,35 +126,35 @@
       {/if}
 
       <!-- A. 지역 시세 요약 카드 -->
-      {#if data.rankInfo}
+      {#if rankInfo}
       <section class="mb-10">
         <div class="grid grid-cols-3 gap-3">
           <div class="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold text-white">{data.rankInfo.avgPrice}</div>
+            <div class="text-2xl font-bold text-white">{rankInfo.avgPrice}</div>
             <div class="text-xs text-gray-500 mt-1">평균 매매가</div>
           </div>
           <div class="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold text-orange-400">{data.rankInfo.avgPricePerPy}</div>
+            <div class="text-2xl font-bold text-orange-400">{rankInfo.avgPricePerPy}</div>
             <div class="text-xs text-gray-500 mt-1">평당 거래가</div>
           </div>
           <div class="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold text-white">전국 {data.rankInfo.rank}위</div>
+            <div class="text-2xl font-bold text-white">전국 {rankInfo.rank}위</div>
             <div class="text-xs text-gray-500 mt-1">시세 순위</div>
           </div>
         </div>
-        <p class="text-xs text-gray-600 mt-2 text-center">* 국토교통부 실거래가 최근 3개월 기준 · 거래 {data.rankInfo.transactionCount.toLocaleString()}건</p>
+        <p class="text-xs text-gray-600 mt-2 text-center">* 국토교통부 실거래가 최근 3개월 기준 · 거래 {rankInfo.transactionCount.toLocaleString()}건</p>
       </section>
       {/if}
 
       <!-- B. 단지 종합점수 TOP 섹션 -->
-      {#if data.complexes.length > 0}
+      {#if complexes.length > 0}
       <section class="mb-10">
         <h2 class="text-lg font-semibold mb-4 text-gray-200">
           {region.name} 주요 단지 분석
           <span class="text-xs text-gray-500 font-normal ml-2">교통·학군·편의 종합점수 순</span>
         </h2>
         <div class="space-y-2">
-          {#each data.complexes as complex, i}
+          {#each complexes as complex, i}
             <button
               onclick={() => askQuestion(`${complex.complex_name} 아파트 최근 실거래가와 시세 분석해줘`)}
               class="w-full text-left p-4 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all duration-200 group"
@@ -171,14 +235,14 @@
       {/if}
 
       <!-- C. 평형별 시세 -->
-      {#if data.priceByArea && data.priceByArea.length > 0}
+      {#if priceByArea && priceByArea.length > 0}
       <section class="mb-10">
         <h2 class="text-lg font-semibold mb-4 text-gray-200">
           {region.name} 평형별 시세
           <span class="text-xs text-gray-500 font-normal ml-2">최근 3개월 실거래 기준</span>
         </h2>
         <div class="grid grid-cols-2 gap-3">
-          {#each data.priceByArea as item}
+          {#each priceByArea as item}
             {#if item.avg_price}
             <div class="bg-white/5 border border-white/10 rounded-xl p-4">
               <div class="flex items-center justify-between mb-2">
