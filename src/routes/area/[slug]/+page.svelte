@@ -107,10 +107,12 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-3 text-right">
+                  {#if complex.avg_price}
                   <div>
                     <div class="text-sm font-bold text-white">{(complex.avg_price / 10000).toFixed(1)}억</div>
-                    <div class="text-xs text-gray-500">역대 평균가</div>
+                    <div class="text-xs text-orange-400/70">최근 3개월 평균</div>
                   </div>
+                  {/if}
                   <div class="bg-orange-500/10 border border-orange-500/20 rounded-lg px-2 py-1 text-center min-w-[52px]">
                     <div class="text-sm font-bold text-orange-400">{complex.scores.composite}</div>
                     <div class="text-[10px] text-gray-500">종합</div>
