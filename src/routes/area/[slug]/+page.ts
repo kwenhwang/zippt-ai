@@ -16,7 +16,7 @@ export async function load({ params }) {
   const API_BASE = 'https://korean-api-platform.vercel.app';
 
   const [complexesRes, rankingsRes, priceByAreaRes] = await Promise.allSettled([
-    fetch(`${API_BASE}/api/complexes?district=${encodeURIComponent(region.name)}&limit=30`),
+    fetch(`${API_BASE}/api/complexes?district=${encodeURIComponent(region.name)}&limit=30&period_months=3`),
     fetch(`${API_BASE}/api/stats/rankings?sort_by=price&order=desc&limit=50`),
     fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(region.name)}`)
   ]);
