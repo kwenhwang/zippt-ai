@@ -185,17 +185,7 @@
                 <span>·</span>
                 <span>편의 {complex.scores.convenience}</span>
               </div>
-              <!-- 평형별 가격 (prices_by_area가 있을 때만) -->
-              {#if complex.prices_by_area && complex.prices_by_area.length > 0}
-              <div class="mt-2 pt-2 border-t border-white/5 grid grid-cols-2 gap-x-3 gap-y-0.5">
-                {#each complex.prices_by_area as pa}
-                <div class="flex items-center justify-between text-[10px]">
-                  <span class="text-gray-600">{pa.area_type} <span class="text-gray-700">({pa.area_range})</span></span>
-                  <span class="text-gray-400 font-medium">{pa.avg_price_display}</span>
-                </div>
-                {/each}
-              </div>
-              {/if}
+              <!-- 평형별 가격: DB PL 데이터 검증 후 재활성화 예정 -->
             </button>
           {/each}
         </div>
