@@ -171,6 +171,12 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-3 text-right">
+                  {#if !complex.prices_by_area?.length && complex.avg_price}
+                  <div class="text-right">
+                    <div class="text-sm font-bold text-white">{(complex.avg_price / 10000).toFixed(1)}억</div>
+                    <div class="text-xs text-gray-600">평균</div>
+                  </div>
+                  {/if}
                   <div class="bg-orange-500/10 border border-orange-500/20 rounded-lg px-2 py-1 text-center min-w-[52px]">
                     <div class="text-sm font-bold text-orange-400">{complex.scores.composite}</div>
                     <div class="text-[10px] text-gray-500">종합</div>
@@ -185,7 +191,17 @@
                 <span>·</span>
                 <span>편의 {complex.scores.convenience}</span>
               </div>
-              <!-- 평형별 가격: DB PL 데이터 검증 후 재활성화 예정 -->
+              <!-- 평형별 가격 (prices_by_area) -->
+              {#if complex.prices_by_area && complex.prices_by_area.length > 0}
+              <div class="mt-2 pt-2 border-t border-white/5 grid grid-cols-2 gap-x-3 gap-y-1">
+                {#each complex.prices_by_area.slice(0, 4) as pa}
+                <div class="flex items-center justify-between text-[10px]">
+                  <span class="text-gray-600">{pa.pyeong}평 ({pa.exclusive_area}㎡)</span>
+                  <span class="text-gray-300 font-medium">{pa.avg_price_display}</span>
+                </div>
+                {/each}
+              </div>
+              {/if}
             </button>
           {/each}
         </div>
