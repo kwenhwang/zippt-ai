@@ -196,7 +196,7 @@
               <div class="mt-2 pt-2 border-t border-white/5 grid grid-cols-2 gap-x-3 gap-y-1">
                 {#each complex.prices_by_area.slice(0, 4) as pa}
                 <div class="flex items-center justify-between text-[10px]">
-                  <span class="text-gray-600">{pa.pyeong}평 ({pa.exclusive_area}㎡)</span>
+                  <span class="text-gray-600">전용 {pa.exclusive_area}㎡ <span class="text-gray-700">({pa.pyeong}평)</span></span>
                   <span class="text-gray-300 font-medium">{pa.avg_price_display}</span>
                 </div>
                 {/each}
