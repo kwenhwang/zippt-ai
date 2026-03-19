@@ -78,6 +78,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       });
     }
 
+    // JSON 응답 처리 (stream_direct: JWT 토큰 반환)
+    const responseContentType = response.headers.get('content-type') || '';
+    if (responseContentType.includes('application/json')) {
+      const json = await response.json();
+      return new Response(JSON.stringify(json), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // SSE 이벤트 단위 버퍼링 (모바일 청크 분산 문제 해결)
     // 모바일 네트워크는 작은 청크로 SSE 이벤트가 분산되어 AI SDK가 파싱 실패
     // \n\n 경계를 기준으로 완전한 이벤트만 전달

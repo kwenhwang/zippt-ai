@@ -161,8 +161,33 @@
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
-            const reader = response.body?.getReader();
-            if (!reader) throw new Error('스트림을 읽을 수 없습니다');
+            // stream_direct: JWT 토큰으로 sword33에 직접 스트리밍
+            let reader: ReadableStreamDefaultReader<Uint8Array>;
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const json = await response.json();
+                if (json.type === 'stream_direct') {
+                    const allPrevMessages = messages.slice(0, -1).map((m: Message) => ({ role: m.role, content: m.content }));
+                    const lastUserMsg = allPrevMessages.at(-1)?.content || '';
+                    const history = allPrevMessages.slice(0, -1);
+
+                    const directResponse = await fetch(json.streamUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${json.token}`
+                        },
+                        body: JSON.stringify({ message: lastUserMsg, history }),
+                        signal: abortController!.signal
+                    });
+                    if (!directResponse.ok) throw new Error('스트리밍 서버 오류');
+                    reader = directResponse.body!.getReader();
+                } else {
+                    throw new Error('알 수 없는 응답 형식');
+                }
+            } else {
+                reader = response.body!.getReader();
+            }
 
             isStreaming = true;
             const decoder = new TextDecoder();
