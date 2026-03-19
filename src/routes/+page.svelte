@@ -260,9 +260,12 @@
 				if (data && data !== '[DONE]') {
 					try {
 						const parsed = JSON.parse(data);
+						const lastIdx = messages.length - 1;
 						if (parsed.type === 'text-delta' && parsed.delta) {
 							assistantContent += parsed.delta;
-							const lastIdx = messages.length - 1;
+							messages[lastIdx] = { ...messages[lastIdx], content: assistantContent };
+						} else if (parsed.status === 'complete' && parsed.answer) {
+							assistantContent = parsed.answer;
 							messages[lastIdx] = { ...messages[lastIdx], content: assistantContent };
 						}
 					} catch {}
