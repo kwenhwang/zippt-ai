@@ -1,13 +1,10 @@
-import { getRegion } from '$lib/data/regions';
+import { getRegion, getRegionEntries } from '$lib/data/regions';
 
-// prerender 제거, ISR 설정으로 교체
-export const config = {
-  isr: {
-    expiration: 604800 // 7일 (초 단위)
-  }
-};
+export const prerender = true;
 
-// entries() 함수 제거 (ISR에서는 불필요)
+export function entries() {
+  return getRegionEntries();
+}
 
 export async function load({ params }) {
   const region = getRegion(params.slug);

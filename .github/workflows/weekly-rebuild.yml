@@ -1,0 +1,14 @@
+name: Weekly Rebuild
+
+on:
+  schedule:
+    - cron: '0 1 * * 1' # 매주 월요일 01:00 UTC (한국시간 10:00)
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Deploy
+        run: |
+          curl -X POST "https://api.vercel.com/v1/integrations/deploy/prj_NGIWMbzs1HAY5AbeY4z03ZuF8WlB/CZTQ1bvUgY"
