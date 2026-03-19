@@ -245,6 +245,10 @@
                             } else if (parsed.type === 'text-delta' && parsed.delta) {
                                 assistantContent += parsed.delta;
                                 messages[lastIdx] = { ...messages[lastIdx], content: assistantContent };
+                            } else if (parsed.status === 'complete' && parsed.answer) {
+                                // sword33 직접 스트리밍 시 complete 이벤트 처리
+                                assistantContent = parsed.answer;
+                                messages[lastIdx] = { ...messages[lastIdx], content: assistantContent };
                             }
                         } catch {}
                     }
