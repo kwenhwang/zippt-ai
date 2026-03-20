@@ -6,7 +6,7 @@
 		label: string;
 		action: string;
 		icon: string;
-		category: '실거래가' | '지역 비교' | '시세 분석' | '단지 정보';
+		category: '실거래가' | '지역 비교' | '시세 분석' | '단지 정보' | '가격 예측' | '전월세';
 	}
 
 	interface Props {
@@ -30,44 +30,44 @@
 			category: '실거래가'
 		},
 		{
-			title: '서울 vs 경기',
-			label: '아파트 가격 비교',
-			action: '서울과 경기도 아파트 가격을 비교해줘',
-			icon: '🏙️',
-			category: '지역 비교'
-		},
-		{
 			title: '강남 vs 마포',
-			label: '전세가율 비교',
-			action: '강남구와 마포구 아파트 전세가율을 비교해줘',
-			icon: '⚖️',
+			label: '학군·교통 비교',
+			action: '강남구와 마포구 학군 점수와 교통 점수를 비교해줘',
+			icon: '🏫',
 			category: '지역 비교'
 		},
 		{
-			title: '서울 전세가율',
-			label: '매매 vs 전세 비율',
+			title: '서울 전세 시장',
+			label: '전세가율 분석',
 			action: '서울 아파트 매매가 대비 전세가 비율 알려줘',
 			icon: '📈',
 			category: '시세 분석'
 		},
 		{
-			title: '상승 지역 TOP5',
-			label: '2024 가격 상승 순위',
-			action: '2024년 서울 아파트 가격이 많이 오른 지역 TOP5 알려줘',
+			title: '잠실 엘스',
+			label: '가격 예측',
+			action: '잠실 엘스 아파트 향후 가격 전망 알려줘',
+			icon: '🔮',
+			category: '가격 예측'
+		},
+		{
+			title: '2024 상승 TOP5',
+			label: '서울 상승률 랭킹',
+			action: '2024년 서울 아파트 가격 상승률 상위 5개 지역 알려줘',
 			icon: '🔥',
 			category: '시세 분석'
 		},
 		{
-			title: '잠실 엘스',
-			label: '최근 시세 조회',
-			action: '잠실 엘스 아파트 최근 시세 알려줘',
-			icon: '🏘️',
-			category: '단지 정보'
+			title: '마포구 월세',
+			label: '최근 전월세 시세',
+			action: '마포구 아파트 최근 전월세 시세 알려줘',
+			icon: '🏠',
+			category: '전월세'
 		},
 		{
 			title: '판교 알파리움',
-			label: '최근 거래가',
-			action: '판교 알파리움 최근 거래가 알려줘',
+			label: '단지 종합 분석',
+			action: '판교 알파리움 단지 정보와 교통·편의 점수 알려줘',
 			icon: '💎',
 			category: '단지 정보'
 		}
@@ -86,7 +86,9 @@
 		'실거래가': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
 		'지역 비교': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
 		'시세 분석': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-		'단지 정보': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+		'단지 정보': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+		'가격 예측': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+		'전월세': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300'
 	};
 
 	let displayedActions = $state<SuggestedAction[]>(shuffle(suggestedActions).slice(0, 4));
@@ -108,12 +110,20 @@
 
 	<div class="text-center space-y-3 max-w-md px-4">
 		<div class="text-xs font-bold text-[var(--accent-primary)] tracking-widest uppercase opacity-80 mb-1">{greeting}</div>
+
+		<!-- 신뢰 배지 -->
+		<div class="flex gap-3 justify-center flex-wrap mb-2">
+			<span class="text-xs px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 border border-[var(--border-light)] text-[var(--text-secondary)] font-medium">🏠 매매 1,070만건</span>
+			<span class="text-xs px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 border border-[var(--border-light)] text-[var(--text-secondary)] font-medium">🏘️ 단지 46,000개</span>
+			<span class="text-xs px-3 py-1 rounded-full bg-white/60 dark:bg-white/10 border border-[var(--border-light)] text-[var(--text-secondary)] font-medium">📅 19년 이력</span>
+		</div>
+
 		<h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] bg-clip-text text-transparent bg-gradient-to-br from-[var(--text-primary)] to-[var(--text-secondary)]">
-			무엇을 도와드릴까요?
+			부동산 데이터를 AI에게 물어보세요
 		</h1>
 		<p class="text-[var(--text-secondary)] text-lg leading-relaxed font-light">
 			{subGreeting}<br/>
-			<span class="font-medium text-[var(--accent-primary)]">ZIPPT AI</span>가 함께합니다.
+			실거래가 · 학군 · 교통점수 · 가격예측 · 전월세 — <span class="font-medium text-[var(--accent-primary)]">ZIPPT AI</span>가 19년 데이터로 답합니다
 		</p>
 	</div>
 
