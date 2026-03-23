@@ -704,7 +704,7 @@
 		onscroll={handleScroll}
 	>
 		<div 
-			class="max-w-3xl mx-auto px-4 pt-24 pb-48 min-h-full flex flex-col justify-end min-h-[calc(100vh-120px)]"
+			class="max-w-3xl mx-auto px-4 pt-24 pb-4 min-h-full flex flex-col justify-end min-h-[calc(100vh-120px)]"
 			aria-live="polite"
 			aria-atomic="false"
 		>
@@ -751,7 +751,7 @@
 	</main>
 
 	<!-- Footer Input Area -->
-	<footer class="fixed bottom-0 left-0 right-0 p-4 z-40">
+	<footer class="shrink-0 p-4 z-40">
 		<ChatInput 
 			{input}
 			{isLoading}

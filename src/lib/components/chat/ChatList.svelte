@@ -161,20 +161,22 @@
 								{#each message.processSteps as step, stepIdx}
 									<!-- ⚠️ stepIdx 필수: 마지막 pending step에만 순환 메시지 적용 -->
 								{@const isLastPending = step.status === 'pending' && stepIdx === message.processSteps!.length - 1}
-									<div class="flex items-center gap-2 text-[11px] font-medium text-[var(--text-tertiary)] bg-[var(--bg-secondary)]/50 px-3 py-1.5 rounded-full w-fit">
-										{#if step.status === 'pending'}
-											<div class="w-2.5 h-2.5 border-2 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin"></div>
-										{:else}
-											<Check class="w-2.5 h-2.5 text-green-500" />
-										{/if}
-										<span>
-											{#if isLastPending && waitMsgIdx > 0}
-												{WAIT_MESSAGES[waitMsgIdx]}
+									{#if !message.content || step.status === 'pending'}
+										<div class="flex items-center gap-2 text-[11px] font-medium text-[var(--text-tertiary)] bg-[var(--bg-secondary)]/50 px-3 py-1.5 rounded-full w-fit">
+											{#if step.status === 'pending'}
+												<div class="w-2.5 h-2.5 border-2 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin"></div>
 											{:else}
-												{step.content}
+												<Check class="w-2.5 h-2.5 text-green-500" />
 											{/if}
-										</span>
-									</div>
+											<span>
+												{#if isLastPending && waitMsgIdx > 0}
+													{WAIT_MESSAGES[waitMsgIdx]}
+												{:else}
+													{step.content}
+												{/if}
+											</span>
+										</div>
+									{/if}
 									{#if step.type === 'tool' && step.status === 'done' && step.toolResult}
 										{@const toolWidget = parseWidgetFromToolResult(step.toolResult)}
 										{#if toolWidget}
