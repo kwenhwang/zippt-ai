@@ -85,6 +85,12 @@
 
 	let streamStartTime = $state<number>(0);
 
+	function trackEvent(name: string, params: Record<string, string | number> = {}) {
+		if (typeof window !== 'undefined' && typeof (window as any).gtag === 'function') {
+			(window as any).gtag('event', name, params);
+		}
+	}
+
 	// Edit State
 	let editingMessageId = $state<string | null>(null);
 	let editContent = $state('');
@@ -129,6 +135,10 @@
 			content: userContent
 		};
 		messages = [...messages, userMessage];
+		trackEvent('chat_question_sent', {
+			question_length: userContent.trim().length,
+			session_message_count: messages.length,
+		});
 
 		saveCurrentChat();  // ← 사용자 메시지 추가 직후 즉시 저장
 
@@ -288,7 +298,12 @@
             isStreaming = false;
             abortController = null;
             // ⚠️ 스트리밍 완료 시 반드시 리셋 (타이머 정리 트리거)
+            const elapsedSec = streamStartTime > 0 ? Math.round((Date.now() - streamStartTime) / 1000) : 0;
             streamStartTime = 0;
+            trackEvent('chat_response_complete', {
+                response_time_sec: elapsedSec,
+                message_count: messages.length,
+            });
 
             // Final cleanup of process steps for the last assistant message
             if (messages.length > 0) {
