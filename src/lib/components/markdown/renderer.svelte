@@ -89,4 +89,48 @@
 	{#snippet code(props)}
 		<CodeBlock {...props} class={props.class ?? undefined} />
 	{/snippet}
+
+	{#snippet table(props)}
+		{@const { children, ...rest } = props}
+		<div class="overflow-x-auto my-3">
+			<table {...rest} class={cn('w-full text-sm border-collapse', rest.class)}>
+				{@render children?.()}
+			</table>
+		</div>
+	{/snippet}
+
+	{#snippet thead(props)}
+		{@const { children, ...rest } = props}
+		<thead {...rest} class={cn('bg-gray-50 text-gray-600', rest.class)}>
+			{@render children?.()}
+		</thead>
+	{/snippet}
+
+	{#snippet tbody(props)}
+		{@const { children, ...rest } = props}
+		<tbody {...rest} class={cn('divide-y divide-gray-100', rest.class)}>
+			{@render children?.()}
+		</tbody>
+	{/snippet}
+
+	{#snippet tr(props)}
+		{@const { children, ...rest } = props}
+		<tr {...rest} class={cn('hover:bg-gray-50', rest.class)}>
+			{@render children?.()}
+		</tr>
+	{/snippet}
+
+	{#snippet th(props)}
+		{@const { children, ...rest } = props}
+		<th {...rest} class={cn('px-3 py-2 text-left font-medium', rest.class)}>
+			{@render children?.()}
+		</th>
+	{/snippet}
+
+	{#snippet td(props)}
+		{@const { children, ...rest } = props}
+		<td {...rest} class={cn('px-3 py-2 text-gray-700', rest.class)}>
+			{@render children?.()}
+		</td>
+	{/snippet}
 </Markdown>
