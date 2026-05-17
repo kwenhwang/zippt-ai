@@ -136,11 +136,10 @@
 				{/if}
 
 				<div class="
-					relative px-5 py-3.5 shadow-sm text-[15px] leading-[1.6] transition-all duration-300
-					{message.role === 'user' 
-						? 'bg-[var(--accent-primary)] text-white rounded-[var(--radius-msg-user)] shadow-orange-500/10' 
-						: 'bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-light)] rounded-[var(--radius-msg-bot)] backdrop-blur-md'}
-					hover:shadow-md
+					relative px-5 py-3.5 text-[15px] leading-[1.6] tracking-[-0.01em] transition-all duration-300
+					{message.role === 'user'
+						? 'text-white rounded-[var(--radius-msg-user)] user-bubble'
+						: 'bg-[var(--bg-card)] text-[var(--text-primary)] border border-[var(--border-light)] rounded-[var(--radius-msg-bot)] backdrop-blur-md shadow-sm hover:shadow-md'}
 				">
 					{#if editingMessageId === message.id}
 						<!-- Edit Mode -->
@@ -248,3 +247,12 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.user-bubble {
+		background: linear-gradient(135deg, var(--accent-highlight) 0%, var(--accent-primary) 100%);
+		box-shadow:
+			0 8px 16px -6px rgba(249, 115, 22, 0.32),
+			inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+	}
+</style>
