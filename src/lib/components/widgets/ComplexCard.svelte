@@ -25,16 +25,16 @@
 
     <div class="grid grid-cols-3 gap-0 mt-6 divide-x divide-[var(--border-light)]">
       <div class="pr-4">
-        <p class="text-[0.7rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1">평균 시세</p>
-        <p class="text-[var(--text-lg)] font-bold text-[var(--accent-primary)]">{formatPrice(data.avgPrice)}</p>
+        <p class="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.08em] mb-1">평균 시세</p>
+        <p class="text-[var(--text-lg)] font-extrabold text-[var(--accent-primary)] tabular-nums tracking-[-0.02em]">{formatPrice(data.avgPrice)}</p>
       </div>
       <div class="px-4">
-        <p class="text-[0.7rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1">세대수</p>
-        <p class="text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{data.totalUnits.toLocaleString()}</p>
+        <p class="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.08em] mb-1">세대수</p>
+        <p class="text-[var(--text-lg)] font-semibold text-[var(--text-primary)] tabular-nums">{data.totalUnits.toLocaleString()}</p>
       </div>
       <div class="pl-4">
-        <p class="text-[0.7rem] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider mb-1">준공년도</p>
-        <p class="text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{data.buildYear}</p>
+        <p class="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.08em] mb-1">준공년도</p>
+        <p class="text-[var(--text-lg)] font-semibold text-[var(--text-primary)] tabular-nums">{data.buildYear}</p>
       </div>
     </div>
   </div>
