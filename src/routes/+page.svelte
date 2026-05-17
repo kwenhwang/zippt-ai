@@ -623,6 +623,33 @@
 		if (days < 7) return `${days}일 전`;
 		return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 	}
+
+	function getDateGroup(dateString: string): string {
+		const date = new Date(dateString);
+		const now = new Date();
+		const days = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+		if (days === 0) return '오늘';
+		if (days === 1) return '어제';
+		if (days < 7) return '지난 7일';
+		if (days < 30) return '지난 30일';
+		return '이전';
+	}
+
+	let groupedHistory = $derived(
+		(() => {
+			const groups: Record<string, typeof chatHistory> = {};
+			const order: string[] = [];
+			for (const item of chatHistory) {
+				const label = getDateGroup(item.createdAt);
+				if (!groups[label]) {
+					groups[label] = [];
+					order.push(label);
+				}
+				groups[label].push(item);
+			}
+			return order.map((label) => ({ label, items: groups[label] }));
+		})()
+	);
 </script>
 
 <svelte:head>
@@ -640,53 +667,68 @@
 	</div>
 
 	<!-- Premium Floating Header -->
-	<header class="fixed top-0 left-0 right-0 z-50 px-4 py-3 transition-all duration-300">
+	<header class="fixed top-0 left-0 right-0 z-50 px-3 pt-3 transition-all duration-300 safe-area-pt">
 		<div class="max-w-4xl mx-auto">
-			<nav class="glass rounded-2xl px-4 py-2.5 flex items-center justify-between shadow-sm border border-[var(--border-light)]">
-				<div class="flex items-center gap-3">
+			<nav
+				class="floating-nav rounded-[18px] px-2.5 py-2 flex items-center justify-between border border-[var(--border-light)]"
+			>
+				<div class="flex items-center gap-2">
 					<Sheet.Root bind:open={sheetOpen}>
 						<Sheet.Trigger>
 							{#snippet child({ props })}
-								<Button {...props} variant="ghost" size="icon" class="rounded-full hover:bg-[var(--bg-tertiary)] -ml-2 text-[var(--text-secondary)]" aria-label="메뉴 열기">
+								<Button {...props} variant="ghost" size="icon" class="rounded-full w-9 h-9 hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]" aria-label="메뉴 열기">
 									<Menu class="w-5 h-5" />
 								</Button>
 							{/snippet}
 						</Sheet.Trigger>
-						<Sheet.Content side="left" class="w-[300px] p-0 border-none bg-[var(--bg-card)]">
-							<div class="flex flex-col h-full bg-[var(--bg-secondary)]">
-								<div class="p-6 pb-4">
-									<h2 class="text-xl font-semibold tracking-tight text-[var(--text-primary)]">기록</h2>
+						<Sheet.Content side="left" class="w-[280px] p-0 border-none bg-[var(--bg-secondary)]">
+							<div class="flex flex-col h-full">
+								<div class="px-5 pt-12 pb-3 flex items-center justify-between">
+									<h2 class="text-lg font-semibold tracking-tight text-[var(--text-primary)] m-0">기록</h2>
 								</div>
-								
-								<ScrollArea class="flex-1 px-4">
-									<Button onclick={startNewChat} class="w-full justify-start gap-3 mb-6 bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] text-white shadow-md rounded-xl h-11 text-base font-medium transition-transform active:scale-[0.98]">
-										<Plus class="w-5 h-5" /> 새 대화
-									</Button>
-									
-									<div class="space-y-1 pb-4">
-										{#each chatHistory as item (item.id)}
-											<button 
-												onclick={() => loadChat(item)}
-												class="w-full p-3 rounded-xl flex items-center justify-between group transition-all duration-200 text-left hover:bg-[var(--bg-tertiary)] {currentChatId === item.id ? 'bg-[var(--bg-tertiary)] ring-1 ring-[var(--border-medium)]' : ''}"
-											>
-												<div class="flex-1 min-w-0 mr-3">
-													<div class="font-medium text-sm truncate text-[var(--text-primary)]">{item.title}</div>
-													<div class="text-xs text-[var(--text-tertiary)] mt-0.5">{formatDate(item.createdAt)}</div>
-												</div>
-												<div 
-													role="button"
-													tabindex="0"
-													onkeydown={(e) => e.key === 'Enter' && deleteChat(item.id, e)}
-													onclick={(e) => deleteChat(item.id, e)}
-													class="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-[var(--text-tertiary)] transition-all"
-													aria-label="삭제"
-												>
-													<Trash2 class="w-4 h-4" />
-												</div>
-											</button>
-										{/each}
+
+								<div class="px-4 pb-2">
+									<button
+										onclick={startNewChat}
+										class="new-chat-btn w-full h-11 rounded-xl flex items-center gap-2.5 pl-3.5 text-white text-sm font-medium"
+									>
+										<Plus class="w-[18px] h-[18px]" strokeWidth={2.5} />
+										새 대화
+									</button>
+								</div>
+
+								<ScrollArea class="flex-1 px-3">
+									<div class="pb-4">
 										{#if chatHistory.length === 0}
 											<div class="text-center py-10 text-[var(--text-tertiary)] text-sm">기록이 없습니다.</div>
+										{:else}
+											{#each groupedHistory as group}
+												<div class="mb-3">
+													<div class="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-[0.12em] px-3 pt-1.5 pb-1">
+														{group.label}
+													</div>
+													{#each group.items as item (item.id)}
+														<button
+															onclick={() => loadChat(item)}
+															class="w-full p-2.5 rounded-xl flex items-center justify-between group transition-all duration-150 text-left hover:bg-[var(--bg-tertiary)] {currentChatId === item.id ? 'bg-[var(--bg-tertiary)] outline outline-1 outline-[var(--border-medium)]' : ''}"
+														>
+															<div class="flex-1 min-w-0 mr-2">
+																<div class="font-medium text-[13px] truncate text-[var(--text-primary)] tracking-[-0.005em]">{item.title}</div>
+															</div>
+															<div
+																role="button"
+																tabindex="0"
+																onkeydown={(e) => e.key === 'Enter' && deleteChat(item.id, e)}
+																onclick={(e) => deleteChat(item.id, e)}
+																class="opacity-50 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-[var(--text-tertiary)] transition-all"
+																aria-label="삭제"
+															>
+																<Trash2 class="w-3.5 h-3.5" />
+															</div>
+														</button>
+													{/each}
+												</div>
+											{/each}
 										{/if}
 									</div>
 								</ScrollArea>
@@ -694,18 +736,29 @@
 						</Sheet.Content>
 					</Sheet.Root>
 
-					<div class="flex items-center gap-2 cursor-pointer" onclick={startNewChat} onkeydown={() => {}} role="button" tabindex="0">
-						<div class="bg-gradient-to-tr from-orange-500 to-amber-400 text-white p-1.5 rounded-xl shadow-sm">
-							<Home class="w-4 h-4" strokeWidth={2.5} />
+					<div
+						class="flex items-center gap-2 cursor-pointer pl-1 pr-2 py-1 rounded-lg"
+						onclick={startNewChat}
+						onkeydown={() => {}}
+						role="button"
+						tabindex="0"
+					>
+						<div class="brand-glyph p-1.5 rounded-[10px] flex items-center justify-center">
+							<Home class="w-[14px] h-[14px] text-white" strokeWidth={2.6} />
 						</div>
-						<span class="font-bold text-lg tracking-tight text-[var(--text-primary)]">ZIPPT</span>
+						<div class="flex flex-col leading-none">
+							<span class="font-extrabold text-[15px] tracking-[-0.03em] text-[var(--text-primary)]">ZIPPT</span>
+							<span class="text-[9px] font-semibold tracking-[0.04em] text-[var(--accent-primary)] whitespace-nowrap mt-[1px]">
+								집피티 · AI 부동산
+							</span>
+						</div>
 					</div>
 				</div>
 
-				<div class="flex items-center gap-1">
+				<div class="flex items-center gap-0.5">
 					<ThemeToggle />
-					<Button onclick={startNewChat} variant="ghost" size="icon" class="rounded-full hover:bg-[var(--bg-tertiary)] hidden sm:flex" aria-label="새 대화">
-						<Plus class="w-5 h-5 text-[var(--text-secondary)]" />
+					<Button onclick={startNewChat} variant="ghost" size="icon" class="rounded-full w-9 h-9 hover:bg-[var(--bg-tertiary)] hidden sm:flex" aria-label="새 대화">
+						<Plus class="w-[18px] h-[18px] text-[var(--text-secondary)]" />
 					</Button>
 				</div>
 			</nav>
@@ -767,7 +820,7 @@
 
 	<!-- Footer Input Area -->
 	<footer class="shrink-0 p-4 z-40">
-		<ChatInput 
+		<ChatInput
 			{input}
 			{isLoading}
 			{isStreaming}
@@ -777,3 +830,46 @@
 		/>
 	</footer>
 </div>
+
+<style>
+	.floating-nav {
+		background: rgba(255, 255, 255, 0.78);
+		backdrop-filter: blur(24px) saturate(180%);
+		-webkit-backdrop-filter: blur(24px) saturate(180%);
+		box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+	}
+	:global(.dark) .floating-nav {
+		background: rgba(28, 25, 23, 0.78);
+		box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+	}
+
+	.brand-glyph {
+		background: linear-gradient(135deg, #fb923c, #ea580c);
+		box-shadow:
+			0 4px 8px -2px rgba(234, 88, 12, 0.3),
+			inset 0 1px 0 rgba(255, 255, 255, 0.18);
+	}
+
+	.new-chat-btn {
+		background: linear-gradient(135deg, #fb923c, #f97316);
+		box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.25);
+		border: 0;
+		transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+		cursor: pointer;
+	}
+	.new-chat-btn:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 8px 12px -2px rgba(249, 115, 22, 0.35);
+	}
+	.new-chat-btn:active {
+		transform: scale(0.98);
+	}
+
+	@media (max-width: 768px) {
+		.floating-nav {
+			backdrop-filter: none;
+			-webkit-backdrop-filter: none;
+			background: var(--bg-secondary);
+		}
+	}
+</style>
