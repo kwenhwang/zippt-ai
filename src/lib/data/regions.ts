@@ -201,3 +201,23 @@ export function getRegion(slug: string): RegionData | undefined {
 export function getRegionEntries() {
   return REGIONS.map(r => ({ slug: r.slugEn }));
 }
+
+/**
+ * 질문 인텐트 라우팅: 일반 "지역 개요" 질문이면 해당 RegionData 반환 (→ /area/[slugEn] 템플릿으로 즉시 이동).
+ * 매칭이 아니면 null (→ 기존 채팅 폴백). 오라우팅(잘못된 페이지 표시)이 느린-정답보다 나쁘므로 보수적으로 판정한다:
+ *  - 비교/특정평형/긴(복잡) 질문은 채팅으로 보냄
+ *  - 지역이 정확히 1개 매칭되고, 일반 개요 키워드가 있을 때만 라우팅
+ */
+const _COMPARE_HINTS = ['vs', 'versus', '비교', '대비', '차이', '어디가'];
+const _OVERVIEW_HINTS = ['시세', '평균', '전세', '매매', '투자', '추천', '분석', '전망', '어때', '얼마', '현황', '정보', '부동산', '아파트', '가격'];
+
+export function matchRegionIntent(question: string): RegionData | null {
+  const q = (question || '').trim();
+  if (!q || q.length > 30) return null;                 // 길면 복잡 질문 → 채팅
+  if (/\d+\s*평/.test(q)) return null;                  // 특정 평형(단지 시세 등) → 채팅
+  if (_COMPARE_HINTS.some((h) => q.includes(h))) return null; // 비교 질문 → 채팅
+  const matched = REGIONS.filter((r) => q.includes(r.name) || q.includes(r.slug));
+  if (matched.length !== 1) return null;                // 0개 또는 2개+ (비교성) → 채팅
+  if (!_OVERVIEW_HINTS.some((k) => q.includes(k))) return null; // 개요 키워드 없으면 → 채팅
+  return matched[0];
+}

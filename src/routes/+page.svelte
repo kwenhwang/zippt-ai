@@ -24,6 +24,8 @@
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { matchRegionIntent } from '$lib/data/regions';
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as Sheet from '$lib/components/ui/sheet';
@@ -123,6 +125,15 @@
 
 	async function sendChatMessage(userContent: string) {
 		if (!userContent.trim() || isLoading) return;
+
+		// 인텐트 라우팅(빠른 길): 일반 지역 개요 질문은 사전제작 /area 템플릿으로 즉시 이동.
+		// 매칭 안 되면(복잡/특정/비교 질문) 아래 기존 채팅 생성형 경로로 폴백.
+		const routedRegion = matchRegionIntent(userContent);
+		if (routedRegion) {
+			trackEvent('route_to_area_template', { region: routedRegion.slugEn });
+			goto(`/area/${routedRegion.slugEn}`);
+			return;
+		}
 
 		isLoading = true;
 		isStreaming = false;
