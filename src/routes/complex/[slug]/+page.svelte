@@ -55,7 +55,15 @@
       .sort((a, b) => a.ym.localeCompare(b.ym))
       .slice(-12);
   });
-  const trendMax = $derived(Math.max(1, ...monthly.map((m) => m.avg)));
+  // 변별력: 절대 0~max 스케일이면 월별 차이가 안 보임(예: 20~23억 → 막대 다 90%+).
+  // min~max 구간을 18%~100% 높이로 매핑해 월별 등락을 부각.
+  const trendMax = $derived(Math.max(...monthly.map((m) => m.avg), 0));
+  const trendMin = $derived(Math.min(...monthly.map((m) => m.avg), trendMax));
+  function barH(avg: number): number {
+    const span = trendMax - trendMin;
+    if (span <= 0) return 60; // 단일/동일값
+    return 18 + 82 * ((avg - trendMin) / span);
+  }
 
   // 최근 실거래 (선택 평형 반영, 상위 8건; txs는 desc 정렬)
   const recent = $derived(
@@ -77,16 +85,17 @@
 
   // ── 평형별 (요약 prices_by_area를 분양평 그룹핑) ───────────
   const groups = (() => {
-    const m = new Map<number, { py: number; areas: number[]; sumAvg: number; n: number; min: number; max: number }>();
+    const m = new Map<number, { py: number; areas: number[]; sumAvg: number; n: number; min: number; max: number; cnt: number }>();
     for (const a of (c?.prices_by_area ?? [])) {
       if (!a?.exclusive_area) continue;
       const py = supplyPyeong(a.exclusive_area);
-      if (!m.has(py)) m.set(py, { py, areas: [], sumAvg: 0, n: 0, min: Infinity, max: 0 });
+      if (!m.has(py)) m.set(py, { py, areas: [], sumAvg: 0, n: 0, min: Infinity, max: 0, cnt: 0 });
       const g = m.get(py)!;
       g.areas.push(a.exclusive_area);
       if (a.avg_price) { g.sumAvg += a.avg_price; g.n++; }
       if (a.min_price) g.min = Math.min(g.min, a.min_price);
       if (a.max_price) g.max = Math.max(g.max, a.max_price);
+      g.cnt += a.transaction_count ?? 0;
     }
     return [...m.values()]
       .map((g) => {
@@ -99,6 +108,7 @@
           py: g.py,
           m2: Math.round(g.areas.reduce((s, x) => s + x, 0) / g.areas.length),
           avg,
+          cnt: g.cnt,
           min: g.min === Infinity ? 0 : g.min,
           max: g.max,
           jeonse: jeonse10k,
@@ -114,6 +124,15 @@
       .sort((a, b) => a.py - b.py);
   })();
   const maxAvg = Math.max(1, ...groups.map((g) => g.avg));
+
+  // 상단 핵심 수치: 평형 선택 시 해당 평형 평균가·누적거래로 교체
+  const headline = $derived.by(() => {
+    if (selectedPy != null) {
+      const g = groups.find((x) => x.py === selectedPy);
+      if (g) return { avg: g.avg, count: g.cnt, py: selectedPy };
+    }
+    return { avg: c?.avg_price ?? 0, count: c?.transaction_count ?? 0, py: null as number | null };
+  });
 
   const scoreItems = [
     { label: '교통', val: scores.transit, note: false },
@@ -167,15 +186,15 @@
       {/if}
     </div>
 
-    <!-- 핵심 수치 -->
+    <!-- 핵심 수치 (평형 선택 시 해당 평형 기준) -->
     <section class="grid grid-cols-2 gap-3 mb-8">
       <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
-        <div class="text-xs text-gray-500 mb-1">평균 매매가</div>
-        <div class="text-3xl font-bold text-white">{eok(c.avg_price)}</div>
+        <div class="text-xs text-gray-500 mb-1">평균 매매가{#if headline.py}<span class="text-orange-400"> · {headline.py}평</span>{/if}</div>
+        <div class="text-3xl font-bold text-white">{eok(headline.avg)}</div>
       </div>
       <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
-        <div class="text-xs text-gray-500 mb-1">누적 거래</div>
-        <div class="text-3xl font-bold text-white">{c.transaction_count?.toLocaleString() ?? '-'}<span class="text-base font-medium text-gray-500"> 건</span></div>
+        <div class="text-xs text-gray-500 mb-1">누적 거래{#if headline.py}<span class="text-orange-400"> · {headline.py}평</span>{/if}</div>
+        <div class="text-3xl font-bold text-white">{headline.count?.toLocaleString() ?? '-'}<span class="text-base font-medium text-gray-500"> 건</span></div>
       </div>
     </section>
 
@@ -201,12 +220,12 @@
     {#if monthly.length > 1}
     <section class="mb-8">
       <h2 class="text-lg font-semibold mb-1 text-gray-200">월별 실거래 평균가{#if selectedPy} · {selectedPy}평{/if}</h2>
-      <p class="text-xs text-gray-500 mb-4">최근 {monthly.length}개월 · 막대=평균 거래가{#if selectedPy == null} · 평형칩으로 필터{/if}</p>
+      <p class="text-xs text-gray-500 mb-4">최근 {monthly.length}개월 · {trendMin.toFixed(1)}~{trendMax.toFixed(1)}억 구간 확대{#if selectedPy == null} · 평형칩으로 필터{/if}</p>
       <div class="flex items-end gap-1.5 h-32">
         {#each monthly as m}
           <div class="flex-1 flex flex-col items-center justify-end h-full group">
-            <div class="text-[9px] text-gray-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{m.avg.toFixed(1)}억</div>
-            <div class="w-full rounded-t bg-gradient-to-t from-orange-500/70 to-amber-400 transition-all" style="height: {Math.max(4, (m.avg / trendMax) * 100)}%" title="{fmtMonth(m.ym)} · 평균 {m.avg.toFixed(1)}억 · {m.n}건"></div>
+            <div class="text-[9px] text-gray-300 mb-1 whitespace-nowrap">{m.avg.toFixed(1)}</div>
+            <div class="w-full rounded-t bg-gradient-to-t from-orange-500/70 to-amber-400 transition-all hover:from-orange-400 hover:to-amber-300" style="height: {barH(m.avg)}%" title="{fmtMonth(m.ym)} · 평균 {m.avg.toFixed(1)}억 · {m.n}건"></div>
           </div>
         {/each}
       </div>
