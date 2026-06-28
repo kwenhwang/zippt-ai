@@ -1,7 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
 
-  let { data }: { data: { name: string; complex: any; transactions: any[] } } = $props();
+  let { data }: {
+    data: { name: string; complex: any; transactions: any[]; jeonse: any[]; jeonseMeta: any };
+  } = $props();
   const c = data.complex;
 
   // 전용면적(㎡) → 분양 평수 (CLAUDE.md 도메인룰: 분양평 = 전용평 / 0.745)
@@ -65,6 +67,14 @@
     }))
   );
 
+  // ── 전세 (평형별 중앙값, 백엔드 /v1/rental/jeonse-by-pyeong) ──
+  // supply_pyeong → 전세 중앙값(만원). 전세가율 = 전세 / 매매.
+  const jeonseByPy = new Map<number, any>(
+    (data.jeonse ?? []).map((j: any) => [j.supply_pyeong, j])
+  );
+  const jeonseRange = data.jeonseMeta?.date_range ?? null;
+  const hasJeonse = (data.jeonse ?? []).length > 0;
+
   // ── 평형별 (요약 prices_by_area를 분양평 그룹핑) ───────────
   const groups = (() => {
     const m = new Map<number, { py: number; areas: number[]; sumAvg: number; n: number; min: number; max: number }>();
@@ -79,7 +89,23 @@
       if (a.max_price) g.max = Math.max(g.max, a.max_price);
     }
     return [...m.values()]
-      .map((g) => ({ py: g.py, m2: Math.round(g.areas.reduce((s, x) => s + x, 0) / g.areas.length), avg: g.n ? g.sumAvg / g.n : 0, min: g.min === Infinity ? 0 : g.min, max: g.max }))
+      .map((g) => {
+        const avg = g.n ? g.sumAvg / g.n : 0;
+        const j = jeonseByPy.get(g.py);
+        // 전세가율 = 전세 중앙값 / 매매 평균 (둘 다 만원). 0~100%.
+        const jeonse10k = j?.jeonse_median_10k ?? null;
+        const ratio = jeonse10k && avg ? Math.round((jeonse10k / avg) * 100) : null;
+        return {
+          py: g.py,
+          m2: Math.round(g.areas.reduce((s, x) => s + x, 0) / g.areas.length),
+          avg,
+          min: g.min === Infinity ? 0 : g.min,
+          max: g.max,
+          jeonse: jeonse10k,
+          jeonseCount: j?.jeonse_count ?? 0,
+          ratio
+        };
+      })
       .filter((g) => g.avg > 0)
       .sort((a, b) => a.py - b.py);
   })();
@@ -216,11 +242,11 @@
     </section>
     {/if}
 
-    <!-- 평형별 시세 -->
+    <!-- 평형별 시세 + 전세가율 -->
     {#if groups.length > 0}
     <section class="mb-8">
-      <h2 class="text-lg font-semibold mb-1 text-gray-200">평형별 시세</h2>
-      <p class="text-xs text-gray-500 mb-4">분양 평형 기준 · 막대는 평균가 비례</p>
+      <h2 class="text-lg font-semibold mb-1 text-gray-200">평형별 시세{#if hasJeonse} · 전세가율{/if}</h2>
+      <p class="text-xs text-gray-500 mb-4">분양 평형 기준 · 막대는 평균가 비례{#if hasJeonse} · <span class="text-emerald-400">전세가율 = 전세 중앙값 ÷ 매매 평균</span>{/if}</p>
       <div class="space-y-2.5">
         {#each groups as g}
           <div class="rounded-xl bg-white/5 border border-white/10 p-3.5">
@@ -234,9 +260,20 @@
             <div class="h-1.5 rounded-full bg-white/5 overflow-hidden">
               <div class="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400" style="width: {Math.max(8, (g.avg / maxAvg) * 100)}%"></div>
             </div>
+            {#if g.jeonse}
+              <div class="flex items-center justify-between mt-2.5 pt-2.5 border-t border-white/5 text-xs">
+                <span class="text-gray-400">전세 <span class="text-gray-200 font-medium">{eok(g.jeonse)}</span><span class="text-gray-600"> · {g.jeonseCount}건</span></span>
+                {#if g.ratio}
+                  <span class="font-semibold {g.ratio >= 70 ? 'text-red-400' : g.ratio >= 55 ? 'text-amber-400' : 'text-emerald-400'}">전세가율 {g.ratio}%</span>
+                {/if}
+              </div>
+            {/if}
           </div>
         {/each}
       </div>
+      {#if hasJeonse && jeonseRange}
+        <p class="text-[11px] text-gray-600 mt-3 leading-relaxed">* 전세가율은 전세 보증금 중앙값 ÷ 매매 평균가입니다. 전세 거래 기준 {jeonseRange.min} ~ {jeonseRange.max}. 높을수록(70%↑) 갭이 적고 전세 수요가 강한 편, 낮을수록 매매 대비 전세가 저렴함을 뜻합니다.</p>
+      {/if}
     </section>
     {/if}
 

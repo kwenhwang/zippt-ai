@@ -20,20 +20,32 @@ export async function load({ params, fetch }) {
   }
 
   let transactions: any[] = [];
+  let jeonse: any[] = [];
+  let jeonseMeta: any = null;
   if (complex) {
-    try {
-      const cname = complex.complex_name || name;
-      const tx = await fetch(
+    const cname = complex.complex_name || name;
+    const ckey = complex.complex_key;
+    // 실거래(매매) + 전세(평형별 중앙값)을 병렬 로드
+    const [txRes, jRes] = await Promise.allSettled([
+      fetch(
         `${API_BASE}/api/transactions?complex_name=${encodeURIComponent(cname)}&limit=100&order_by=contract_year_month&order=desc`
-      );
-      if (tx.ok) {
-        const tj = await tx.json();
-        transactions = tj?.data ?? [];
-      }
-    } catch {
-      // 실거래 실패해도 요약으로 화면 동작
+      ),
+      fetch(
+        `${API_BASE}/api/rental/jeonse?` +
+          (ckey ? `complex_key=${encodeURIComponent(ckey)}` : `complex_name=${encodeURIComponent(cname)}`)
+      )
+    ]);
+    if (txRes.status === 'fulfilled' && txRes.value.ok) {
+      try { transactions = (await txRes.value.json())?.data ?? []; } catch { /* graceful */ }
+    }
+    if (jRes.status === 'fulfilled' && jRes.value.ok) {
+      try {
+        const jj = await jRes.value.json();
+        jeonse = jj?.data ?? [];
+        jeonseMeta = jj?.metadata ?? null;
+      } catch { /* graceful */ }
     }
   }
 
-  return { name, complex, transactions };
+  return { name, complex, transactions, jeonse, jeonseMeta };
 }
