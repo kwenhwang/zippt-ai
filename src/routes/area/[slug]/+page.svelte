@@ -156,7 +156,7 @@
         <div class="space-y-2">
           {#each complexes as complex, i}
             <button
-              onclick={() => askQuestion(`${complex.complex_name} 아파트 최근 실거래가와 시세 분석해줘`)}
+              onclick={() => goto(`/complex/${encodeURIComponent(complex.complex_name)}`)}
               class="w-full text-left p-4 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all duration-200 group"
             >
               <div class="flex items-center justify-between">
