@@ -221,3 +221,29 @@ export function matchRegionIntent(question: string): RegionData | null {
   if (!_OVERVIEW_HINTS.some((k) => q.includes(k))) return null; // 개요 키워드 없으면 → 채팅
   return matched[0];
 }
+
+/**
+ * 단지 인텐트: 단지 브랜드/접미사 신호가 있으면 단지명 코어를 추출해 /complex/[name]로 라우팅.
+ * 클라에 단지목록이 없어 휴리스틱 — 못 찾으면 /complex 화면이 채팅 폴백 버튼을 제공하므로 graceful.
+ * 부동산 챗 맥락이라 시티/타운/마을/단지 같은 일반 접미사도 단지로 간주.
+ */
+const _COMPLEX_HINTS = [
+  '자이', '래미안', '푸르지오', '힐스테이트', 'e편한세상', '이편한세상', '아이파크',
+  '센트레빌', '롯데캐슬', '캐슬', '위브', '더샵', '팰리스', '베르디움', '데시앙',
+  '꿈에그린', 'sk뷰', '시티', '타운', '마을', '단지', '파크'
+];
+
+export function matchComplexIntent(question: string): string | null {
+  const q = (question || '').trim();
+  if (!q || q.length > 25) return null;
+  if (_COMPARE_HINTS.some((h) => q.includes(h))) return null; // 비교는 채팅
+  const qLow = q.toLowerCase();
+  if (!_COMPLEX_HINTS.some((h) => qLow.includes(h))) return null; // 단지 신호 없으면 채팅
+  // 꼬리 질문어/평형 제거 → 단지명 코어
+  let name = q
+    .replace(/\d+\s*평.*$/, '')
+    .replace(/\s*(아파트\s*)?(시세|실거래가?|매매가?|가격|얼마.*|분석.*|알려.*|어때.*|전세.*|월세.*|투자.*|전망.*|정보.*)$/, '')
+    .trim();
+  if (name.length < 2) name = q.replace(/\d+\s*평.*$/, '').trim();
+  return name.length >= 2 ? name : null;
+}

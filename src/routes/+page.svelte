@@ -25,7 +25,7 @@
 	import { fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { matchRegionIntent } from '$lib/data/regions';
+	import { matchRegionIntent, matchComplexIntent } from '$lib/data/regions';
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as Sheet from '$lib/components/ui/sheet';
@@ -132,6 +132,13 @@
 		if (routedRegion) {
 			trackEvent('route_to_area_template', { region: routedRegion.slugEn });
 			goto(`/area/${routedRegion.slugEn}`);
+			return;
+		}
+		// 단지명(헬리오시티 등) → 단지 분석 화면. 못 찾으면 그 화면이 채팅 폴백 제공.
+		const complexName = matchComplexIntent(userContent);
+		if (complexName) {
+			trackEvent('route_to_complex_template', { name: complexName });
+			goto(`/complex/${encodeURIComponent(complexName)}`);
 			return;
 		}
 
