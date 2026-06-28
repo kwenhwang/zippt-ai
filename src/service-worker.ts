@@ -17,6 +17,8 @@ self.addEventListener('install', (event) => {
     }
 
     event.waitUntil(addFilesToCache());
+    // 새 배포 즉시 적용: 기존 SW 종료를 기다리지 않고 새 SW를 대기 상태에서 활성화로.
+    self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -25,6 +27,8 @@ self.addEventListener('activate', (event) => {
         for (const key of await caches.keys()) {
             if (key !== CACHE) await caches.delete(key);
         }
+        // 활성화되자마자 열려 있는 모든 탭을 새 SW가 제어 → 새로고침 없이 최신 반영
+        await self.clients.claim();
     }
 
     event.waitUntil(deleteOldCaches());
