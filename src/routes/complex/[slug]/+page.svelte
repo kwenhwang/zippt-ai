@@ -103,7 +103,11 @@
           max: g.max,
           jeonse: jeonse10k,
           jeonseCount: j?.jeonse_count ?? 0,
-          ratio
+          ratio,
+          // 월세: 보증금(만원) + 월세(만원) 중앙값
+          wolseDeposit: j?.wolse_deposit_10k ?? null,
+          wolseRent: j?.wolse_rent_10k ?? null,
+          wolseCount: j?.wolse_count ?? 0
         };
       })
       .filter((g) => g.avg > 0)
@@ -245,8 +249,8 @@
     <!-- 평형별 시세 + 전세가율 -->
     {#if groups.length > 0}
     <section class="mb-8">
-      <h2 class="text-lg font-semibold mb-1 text-gray-200">평형별 시세{#if hasJeonse} · 전세가율{/if}</h2>
-      <p class="text-xs text-gray-500 mb-4">분양 평형 기준 · 막대는 평균가 비례{#if hasJeonse} · <span class="text-emerald-400">전세가율 = 전세 중앙값 ÷ 매매 평균</span>{/if}</p>
+      <h2 class="text-lg font-semibold mb-1 text-gray-200">평형별 시세{#if hasJeonse} · 전세·월세{/if}</h2>
+      <p class="text-xs text-gray-500 mb-4">분양 평형 기준 · 막대는 매매 평균가 비례{#if hasJeonse} · <span class="text-emerald-400">전세가율 = 전세 중앙값 ÷ 매매 평균</span>{/if}</p>
       <div class="space-y-2.5">
         {#each groups as g}
           <div class="rounded-xl bg-white/5 border border-white/10 p-3.5">
@@ -260,11 +264,20 @@
             <div class="h-1.5 rounded-full bg-white/5 overflow-hidden">
               <div class="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400" style="width: {Math.max(8, (g.avg / maxAvg) * 100)}%"></div>
             </div>
-            {#if g.jeonse}
-              <div class="flex items-center justify-between mt-2.5 pt-2.5 border-t border-white/5 text-xs">
-                <span class="text-gray-400">전세 <span class="text-gray-200 font-medium">{eok(g.jeonse)}</span><span class="text-gray-600"> · {g.jeonseCount}건</span></span>
-                {#if g.ratio}
-                  <span class="font-semibold {g.ratio >= 70 ? 'text-red-400' : g.ratio >= 55 ? 'text-amber-400' : 'text-emerald-400'}">전세가율 {g.ratio}%</span>
+            {#if g.jeonse || g.wolseRent}
+              <div class="mt-2.5 pt-2.5 border-t border-white/5 space-y-1.5 text-xs">
+                {#if g.jeonse}
+                  <div class="flex items-center justify-between">
+                    <span class="text-gray-400">전세 <span class="text-gray-200 font-medium">{eok(g.jeonse)}</span><span class="text-gray-600"> · {g.jeonseCount}건</span></span>
+                    {#if g.ratio}
+                      <span class="font-semibold {g.ratio >= 70 ? 'text-red-400' : g.ratio >= 55 ? 'text-amber-400' : 'text-emerald-400'}">전세가율 {g.ratio}%</span>
+                    {/if}
+                  </div>
+                {/if}
+                {#if g.wolseRent}
+                  <div class="flex items-center justify-between">
+                    <span class="text-gray-400">월세 <span class="text-gray-200 font-medium">보증 {eok(g.wolseDeposit)} / 월 {g.wolseRent}만</span><span class="text-gray-600"> · {g.wolseCount}건</span></span>
+                  </div>
                 {/if}
               </div>
             {/if}
