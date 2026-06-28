@@ -29,10 +29,19 @@
   const periodStart = monthsSorted[0];
   const periodEnd = monthsSorted[monthsSorted.length - 1];
 
-  // 월별 평균가 추세 (최근 12개월)
-  const monthly = (() => {
+  // 평형 선택 (클릭 인터랙션): null=전체. 거래에 존재하는 분양평 버킷.
+  const pyBuckets = [...new Set(txs.map((t: any) => supplyPyeong(t.exclusive_area)))].sort(
+    (a, b) => a - b
+  );
+  let selectedPy = $state<number | null>(null);
+  const filteredTxs = $derived(
+    selectedPy == null ? txs : txs.filter((t: any) => supplyPyeong(t.exclusive_area) === selectedPy)
+  );
+
+  // 월별 평균가 추세 (선택 평형 반영, 최근 12개월)
+  const monthly = $derived.by(() => {
     const m = new Map<string, { ym: string; sum: number; n: number }>();
-    for (const t of txs) {
+    for (const t of filteredTxs) {
       const ym = String(t.contract_year_month);
       if (!m.has(ym)) m.set(ym, { ym, sum: 0, n: 0 });
       const g = m.get(ym)!;
@@ -43,16 +52,18 @@
       .map((g) => ({ ym: g.ym, avg: g.sum / g.n / 1e8, n: g.n }))
       .sort((a, b) => a.ym.localeCompare(b.ym))
       .slice(-12);
-  })();
-  const trendMax = Math.max(1, ...monthly.map((m) => m.avg));
+  });
+  const trendMax = $derived(Math.max(1, ...monthly.map((m) => m.avg)));
 
-  // 최근 실거래 (상위 8건; txs는 desc 정렬)
-  const recent = txs.slice(0, 8).map((t: any) => ({
-    ym: String(t.contract_year_month),
-    py: supplyPyeong(t.exclusive_area),
-    floor: t.floor,
-    eok: t.transaction_amount_krw / 1e8
-  }));
+  // 최근 실거래 (선택 평형 반영, 상위 8건; txs는 desc 정렬)
+  const recent = $derived(
+    filteredTxs.slice(0, 8).map((t: any) => ({
+      ym: String(t.contract_year_month),
+      py: supplyPyeong(t.exclusive_area),
+      floor: t.floor,
+      eok: t.transaction_amount_krw / 1e8
+    }))
+  );
 
   // ── 평형별 (요약 prices_by_area를 분양평 그룹핑) ───────────
   const groups = (() => {
@@ -138,11 +149,29 @@
       </div>
     </section>
 
-    <!-- 월별 가격 추세 (실거래 기반) -->
+    <!-- 평형 선택 (클릭 → 추세·최근거래 필터) -->
+    {#if pyBuckets.length > 1}
+    <section class="mb-5">
+      <div class="flex flex-wrap gap-2">
+        <button
+          onclick={() => (selectedPy = null)}
+          class="px-3 py-1.5 rounded-full text-xs font-medium border transition-all {selectedPy == null ? 'bg-orange-500 text-black border-orange-400' : 'bg-white/5 text-gray-300 border-white/10 hover:border-orange-500/40'}"
+        >전체</button>
+        {#each pyBuckets as py}
+          <button
+            onclick={() => (selectedPy = py)}
+            class="px-3 py-1.5 rounded-full text-xs font-medium border transition-all {selectedPy === py ? 'bg-orange-500 text-black border-orange-400' : 'bg-white/5 text-gray-300 border-white/10 hover:border-orange-500/40'}"
+          >{py}평</button>
+        {/each}
+      </div>
+    </section>
+    {/if}
+
+    <!-- 월별 가격 추세 (실거래 기반, 선택 평형 반영) -->
     {#if monthly.length > 1}
     <section class="mb-8">
-      <h2 class="text-lg font-semibold mb-1 text-gray-200">월별 실거래 평균가</h2>
-      <p class="text-xs text-gray-500 mb-4">최근 {monthly.length}개월 · 막대=평균 거래가</p>
+      <h2 class="text-lg font-semibold mb-1 text-gray-200">월별 실거래 평균가{#if selectedPy} · {selectedPy}평{/if}</h2>
+      <p class="text-xs text-gray-500 mb-4">최근 {monthly.length}개월 · 막대=평균 거래가{#if selectedPy == null} · 평형칩으로 필터{/if}</p>
       <div class="flex items-end gap-1.5 h-32">
         {#each monthly as m}
           <div class="flex-1 flex flex-col items-center justify-end h-full group">
@@ -161,7 +190,7 @@
     <!-- 최근 실거래 -->
     {#if recent.length > 0}
     <section class="mb-8">
-      <h2 class="text-lg font-semibold mb-3 text-gray-200">최근 실거래</h2>
+      <h2 class="text-lg font-semibold mb-3 text-gray-200">최근 실거래{#if selectedPy} · {selectedPy}평{/if}</h2>
       <div class="overflow-hidden rounded-xl border border-white/10">
         <table class="w-full text-sm">
           <thead>
