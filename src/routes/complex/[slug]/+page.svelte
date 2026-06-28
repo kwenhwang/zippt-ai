@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
 
-  let { data }: { data: { name: string; complex: any } } = $props();
+  let { data }: { data: { name: string; complex: any; transactions: any[] } } = $props();
   const c = data.complex;
 
   // 전용면적(㎡) → 분양 평수 (CLAUDE.md 도메인룰: 분양평 = 전용평 / 0.745)
@@ -12,10 +12,49 @@
     if (!manwon) return '-';
     return `${(manwon / 10000).toFixed(1)}억`;
   }
+  function eokFromKrw(krw: number): string {
+    return `${(krw / 1e8).toFixed(1)}억`;
+  }
+  function fmtMonth(ym: string): string {
+    return ym && ym.length >= 6 ? `${ym.slice(0, 4)}.${ym.slice(4, 6)}` : ym ?? '';
+  }
 
   const scores = c?.scores ?? {};
 
-  // 평형별 시세: raw 면적(수십 개 중복)을 분양평 기준으로 그룹핑해 대표 시세로 정리
+  // ── 실거래 ───────────────────────────────────────────────
+  const txs = (data.transactions ?? []).filter(
+    (t: any) => t?.transaction_amount_krw && t?.contract_year_month
+  );
+  const monthsSorted = txs.map((t: any) => String(t.contract_year_month)).sort();
+  const periodStart = monthsSorted[0];
+  const periodEnd = monthsSorted[monthsSorted.length - 1];
+
+  // 월별 평균가 추세 (최근 12개월)
+  const monthly = (() => {
+    const m = new Map<string, { ym: string; sum: number; n: number }>();
+    for (const t of txs) {
+      const ym = String(t.contract_year_month);
+      if (!m.has(ym)) m.set(ym, { ym, sum: 0, n: 0 });
+      const g = m.get(ym)!;
+      g.sum += t.transaction_amount_krw;
+      g.n++;
+    }
+    return [...m.values()]
+      .map((g) => ({ ym: g.ym, avg: g.sum / g.n / 1e8, n: g.n }))
+      .sort((a, b) => a.ym.localeCompare(b.ym))
+      .slice(-12);
+  })();
+  const trendMax = Math.max(1, ...monthly.map((m) => m.avg));
+
+  // 최근 실거래 (상위 8건; txs는 desc 정렬)
+  const recent = txs.slice(0, 8).map((t: any) => ({
+    ym: String(t.contract_year_month),
+    py: supplyPyeong(t.exclusive_area),
+    floor: t.floor,
+    eok: t.transaction_amount_krw / 1e8
+  }));
+
+  // ── 평형별 (요약 prices_by_area를 분양평 그룹핑) ───────────
   const groups = (() => {
     const m = new Map<number, { py: number; areas: number[]; sumAvg: number; n: number; min: number; max: number }>();
     for (const a of (c?.prices_by_area ?? [])) {
@@ -29,22 +68,16 @@
       if (a.max_price) g.max = Math.max(g.max, a.max_price);
     }
     return [...m.values()]
-      .map((g) => ({
-        py: g.py,
-        m2: Math.round(g.areas.reduce((s, x) => s + x, 0) / g.areas.length),
-        avg: g.n ? g.sumAvg / g.n : 0,
-        min: g.min === Infinity ? 0 : g.min,
-        max: g.max
-      }))
+      .map((g) => ({ py: g.py, m2: Math.round(g.areas.reduce((s, x) => s + x, 0) / g.areas.length), avg: g.n ? g.sumAvg / g.n : 0, min: g.min === Infinity ? 0 : g.min, max: g.max }))
       .filter((g) => g.avg > 0)
       .sort((a, b) => a.py - b.py);
   })();
-
   const maxAvg = Math.max(1, ...groups.map((g) => g.avg));
+
   const scoreItems = [
-    { label: '교통', val: scores.transit },
-    { label: '학군', val: scores.school },
-    { label: '편의', val: scores.convenience }
+    { label: '교통', val: scores.transit, note: false },
+    { label: '학군', val: scores.school, note: true },
+    { label: '편의', val: scores.convenience, note: false }
   ];
 
   function ask(q: string) {
@@ -54,7 +87,7 @@
 
 <svelte:head>
   <title>{data.name} 시세·실거래 분석 | Zippt AI 부동산</title>
-  <meta name="description" content="{data.name} 아파트 평균 시세, 평형별 가격, 입지 점수(교통·학군·편의)를 실거래 데이터로 분석합니다." />
+  <meta name="description" content="{data.name} 아파트 평균 시세, 최근 실거래, 월별 추세, 평형별 가격을 실거래 데이터로 분석합니다." />
 </svelte:head>
 
 <main class="min-h-screen bg-gradient-to-br from-gray-950 to-slate-900 text-white">
@@ -72,7 +105,7 @@
   <div class="max-w-3xl mx-auto px-6 py-10">
   {#if c}
     <!-- 히어로 -->
-    <div class="mb-8">
+    <div class="mb-6">
       <div class="flex items-start justify-between gap-4">
         <div>
           <div class="inline-block bg-orange-500/10 border border-orange-500/20 rounded-full px-3 py-1 text-orange-400 text-xs font-medium mb-3">단지 분석</div>
@@ -88,10 +121,13 @@
         </div>
         {/if}
       </div>
+      {#if periodStart}
+        <p class="text-xs text-gray-500 mt-3">📅 분석 기간 <span class="text-gray-300">{fmtMonth(periodStart)} ~ {fmtMonth(periodEnd)}</span> · 최근 실거래 {txs.length}건{#if c.transaction_count} · 누적 {c.transaction_count.toLocaleString()}건{/if}</p>
+      {/if}
     </div>
 
     <!-- 핵심 수치 -->
-    <section class="grid grid-cols-2 gap-3 mb-10">
+    <section class="grid grid-cols-2 gap-3 mb-8">
       <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
         <div class="text-xs text-gray-500 mb-1">평균 매매가</div>
         <div class="text-3xl font-bold text-white">{eok(c.avg_price)}</div>
@@ -102,18 +138,65 @@
       </div>
     </section>
 
-    <!-- 평형별 시세 (분양평 그룹핑 + 막대) -->
+    <!-- 월별 가격 추세 (실거래 기반) -->
+    {#if monthly.length > 1}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-1 text-gray-200">월별 실거래 평균가</h2>
+      <p class="text-xs text-gray-500 mb-4">최근 {monthly.length}개월 · 막대=평균 거래가</p>
+      <div class="flex items-end gap-1.5 h-32">
+        {#each monthly as m}
+          <div class="flex-1 flex flex-col items-center justify-end h-full group">
+            <div class="text-[9px] text-gray-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{m.avg.toFixed(1)}억</div>
+            <div class="w-full rounded-t bg-gradient-to-t from-orange-500/70 to-amber-400 transition-all" style="height: {Math.max(4, (m.avg / trendMax) * 100)}%" title="{fmtMonth(m.ym)} · 평균 {m.avg.toFixed(1)}억 · {m.n}건"></div>
+          </div>
+        {/each}
+      </div>
+      <div class="flex justify-between text-[10px] text-gray-600 mt-1.5">
+        <span>{fmtMonth(monthly[0].ym)}</span>
+        <span>{fmtMonth(monthly[monthly.length - 1].ym)}</span>
+      </div>
+    </section>
+    {/if}
+
+    <!-- 최근 실거래 -->
+    {#if recent.length > 0}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-3 text-gray-200">최근 실거래</h2>
+      <div class="overflow-hidden rounded-xl border border-white/10">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-white/5 text-gray-500 text-xs">
+              <th class="text-left font-medium px-3 py-2">계약월</th>
+              <th class="text-left font-medium px-3 py-2">평형</th>
+              <th class="text-left font-medium px-3 py-2">층</th>
+              <th class="text-right font-medium px-3 py-2">거래가</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each recent as r}
+              <tr class="border-t border-white/5">
+                <td class="px-3 py-2 text-gray-300">{fmtMonth(r.ym)}</td>
+                <td class="px-3 py-2 text-gray-300">{r.py}평</td>
+                <td class="px-3 py-2 text-gray-500">{r.floor ?? '-'}층</td>
+                <td class="px-3 py-2 text-right font-bold text-white">{r.eok.toFixed(1)}억</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {/if}
+
+    <!-- 평형별 시세 -->
     {#if groups.length > 0}
-    <section class="mb-10">
+    <section class="mb-8">
       <h2 class="text-lg font-semibold mb-1 text-gray-200">평형별 시세</h2>
       <p class="text-xs text-gray-500 mb-4">분양 평형 기준 · 막대는 평균가 비례</p>
       <div class="space-y-2.5">
         {#each groups as g}
           <div class="rounded-xl bg-white/5 border border-white/10 p-3.5">
             <div class="flex items-center justify-between mb-2">
-              <div class="text-sm font-medium text-gray-100">
-                {g.py}평<span class="text-gray-500 font-normal text-xs"> · 전용 {g.m2}㎡</span>
-              </div>
+              <div class="text-sm font-medium text-gray-100">{g.py}평<span class="text-gray-500 font-normal text-xs"> · 전용 {g.m2}㎡</span></div>
               <div class="text-right">
                 <span class="text-base font-bold text-white">{eok(g.avg)}</span>
                 {#if g.min && g.max}<span class="text-[11px] text-gray-600 ml-1">{eok(g.min)}~{eok(g.max)}</span>{/if}
@@ -128,13 +211,13 @@
     </section>
     {/if}
 
-    <!-- 입지 점수 (막대) -->
-    <section class="mb-10">
-      <h2 class="text-lg font-semibold mb-4 text-gray-200">입지 점수 <span class="text-xs text-gray-500 font-normal">(0~100)</span></h2>
+    <!-- 입지 점수 -->
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-4 text-gray-200">입지 점수 <span class="text-xs text-gray-500 font-normal">(전국 상대 0~100)</span></h2>
       <div class="space-y-3">
         {#each scoreItems as s}
           <div class="flex items-center gap-3">
-            <div class="w-10 text-xs text-gray-400 shrink-0">{s.label}</div>
+            <div class="w-12 text-xs text-gray-400 shrink-0">{s.label}{#if s.note}<span class="text-gray-600">*</span>{/if}</div>
             <div class="flex-1 h-2.5 rounded-full bg-white/5 overflow-hidden">
               <div class="h-full rounded-full bg-orange-400/80" style="width: {s.val ?? 0}%"></div>
             </div>
@@ -142,18 +225,19 @@
           </div>
         {/each}
       </div>
-      <div class="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+      <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
         {#if c.nearest_station}<span>🚇 {c.nearest_station}역 인근</span>{/if}
         {#if c.nearest_bus_stop_m}<span>🚌 버스 {Math.round(c.nearest_bus_stop_m)}m</span>{/if}
         {#if c.parking_per_household}<span>🅿️ 세대당 주차 {c.parking_per_household}</span>{/if}
       </div>
+      <p class="text-[11px] text-gray-600 mt-3 leading-relaxed">* 학군: 근접 중학교 기반 전국 백분위 추정치(기준 2026-01)로, 명문학군 명성을 직접 반영하지 않습니다. 참고용.</p>
     </section>
 
     <!-- AI 추가 질문 -->
     <section class="border-t border-white/10 pt-7">
       <h2 class="text-sm font-semibold mb-3 text-gray-300">AI에게 더 물어보기</h2>
       <div class="flex flex-col gap-2">
-        {#each [`${c.complex_name} 최근 실거래가 추세 분석해줘`, `${c.complex_name} 전세가율과 투자 전망은?`, `${c.complex_name} 84㎡(34평) 시세 알려줘`] as q}
+        {#each [`${c.complex_name} 전세가율과 투자 전망은?`, `${c.complex_name} 84㎡(34평) 시세 알려줘`, `${c.complex_name} 주변 비슷한 단지 추천해줘`] as q}
           <button onclick={() => ask(q)} class="text-left p-3 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all text-sm text-gray-300">
             {q} <span class="text-orange-400">→</span>
           </button>
@@ -161,14 +245,12 @@
       </div>
     </section>
 
-    <p class="text-xs text-gray-600 mt-8 text-center">* 국토교통부 실거래가 기반 · 점수는 단지 편의시설 분석값</p>
+    <p class="text-xs text-gray-600 mt-8 text-center">* 국토교통부 실거래가 기반 · 입지 점수는 단지 편의시설 분석 추정값</p>
   {:else}
     <div class="text-center py-24">
       <h1 class="text-2xl font-bold mb-3">"{data.name}" 단지를 찾지 못했어요</h1>
       <p class="text-gray-400 mb-8">정확한 단지명으로 다시 검색하거나, AI에게 직접 물어보세요.</p>
-      <button onclick={() => ask(`${data.name} 시세 알려줘`)} class="inline-block bg-orange-500 hover:bg-orange-400 text-black font-bold rounded-xl px-6 py-3 transition-colors">
-        AI에게 물어보기 →
-      </button>
+      <button onclick={() => ask(`${data.name} 시세 알려줘`)} class="inline-block bg-orange-500 hover:bg-orange-400 text-black font-bold rounded-xl px-6 py-3 transition-colors">AI에게 물어보기 →</button>
     </div>
   {/if}
   </div>
