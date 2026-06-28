@@ -82,6 +82,7 @@
   );
   const jeonseRange = data.jeonseMeta?.date_range ?? null;
   const hasJeonse = (data.jeonse ?? []).length > 0;
+  const households = data.jeonseMeta?.total_households ?? null;
 
   // ── 평형별 (요약 prices_by_area를 분양평 그룹핑) ───────────
   const groups = (() => {
@@ -133,6 +134,18 @@
     }
     return { avg: c?.avg_price ?? 0, count: c?.transaction_count ?? 0, py: null as number | null };
   });
+
+  // ── 투자 판단 신호 ─────────────────────────────────────────
+  // 대표 전세가율 = 전세 거래가 가장 많은(유동성 높은) 평형 기준
+  const repGroup = groups.filter((g) => g.ratio).sort((a, b) => b.jeonseCount - a.jeonseCount)[0];
+  const repRatio = repGroup?.ratio ?? null;
+  // 거래 활성도(회전율): 분석기간 내 누적거래 / 세대수
+  const velocity =
+    households && c?.transaction_count ? Math.round((c.transaction_count / households) * 100) : null;
+  // 깡통전세 주의: 대표 평형 전세가율 80%+ (또는 거래 많은 평형 중 80%+ 존재)
+  const gakRisk =
+    (repRatio != null && repRatio >= 80) ||
+    groups.some((g) => g.ratio && g.ratio >= 80 && g.jeonseCount >= 3);
 
   const scoreItems = [
     { label: '교통', val: scores.transit, note: false },
@@ -197,6 +210,36 @@
         <div class="text-3xl font-bold text-white">{headline.count?.toLocaleString() ?? '-'}<span class="text-base font-medium text-gray-500"> 건</span></div>
       </div>
     </section>
+
+    <!-- 투자 판단 신호 (전세가율·거래활성도·깡통전세) -->
+    {#if repRatio != null || velocity != null}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-3 text-gray-200">투자 판단 신호</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {#if repRatio != null}
+          <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <div class="text-xs text-gray-500 mb-1">대표 전세가율{#if repGroup} · {repGroup.py}평{/if}</div>
+            <div class="text-2xl font-bold {repRatio >= 80 ? 'text-red-400' : repRatio >= 70 ? 'text-amber-400' : 'text-emerald-400'}">{repRatio}%</div>
+            <div class="text-[10px] text-gray-600 mt-1">{repRatio >= 80 ? '갭 매우 적음' : repRatio >= 70 ? '갭 적음' : '매매-전세 갭 여유'}</div>
+          </div>
+        {/if}
+        {#if velocity != null}
+          <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <div class="text-xs text-gray-500 mb-1">거래 활성도</div>
+            <div class="text-2xl font-bold text-white">{velocity}<span class="text-base text-gray-500">%</span></div>
+            <div class="text-[10px] text-gray-600 mt-1">세대 {households?.toLocaleString()} 대비 거래{#if periodStart} ({fmtMonth(periodStart).slice(0,4)}~){/if}</div>
+          </div>
+        {/if}
+        {#if gakRisk}
+          <div class="rounded-2xl bg-red-500/10 border border-red-500/30 p-4">
+            <div class="text-xs text-red-300 mb-1">⚠️ 깡통전세 주의</div>
+            <div class="text-sm font-bold text-red-400 leading-tight mt-1">전세가율 80%+</div>
+            <div class="text-[10px] text-gray-500 mt-1">전세금 회수 위험 점검 권장</div>
+          </div>
+        {/if}
+      </div>
+    </section>
+    {/if}
 
     <!-- 평형 선택 (클릭 → 추세·최근거래 필터) -->
     {#if pyBuckets.length > 1}
