@@ -8,21 +8,30 @@ export async function load({ url, fetch }) {
   const sigungu = url.searchParams.get('sigungu') || '';
 
   let items: any[] = [];
-  try {
-    const u = new URL(`${API_BASE}/api/auction/compare`);
-    u.searchParams.set('sido', sido);
-    if (sigungu) u.searchParams.set('sigungu', sigungu);
-    u.searchParams.set('usage_name', '아파트');
-    u.searchParams.set('limit', '30');
-    const res = await fetch(u.toString());
-    if (res.ok) {
-      const j = await res.json();
-      const d = j?.data ?? {};
+  let saleRate: any = null;
+  const compareUrl = new URL(`${API_BASE}/api/auction/compare`);
+  compareUrl.searchParams.set('sido', sido);
+  if (sigungu) compareUrl.searchParams.set('sigungu', sigungu);
+  compareUrl.searchParams.set('usage_name', '아파트');
+  compareUrl.searchParams.set('limit', '30');
+
+  const rateUrl = new URL(`${API_BASE}/api/auction/sale-rate`);
+  rateUrl.searchParams.set('sido', sido);
+  if (sigungu) rateUrl.searchParams.set('sigungu', sigungu);
+  rateUrl.searchParams.set('usage_name', '아파트');
+
+  const [cRes, rRes] = await Promise.allSettled([fetch(compareUrl.toString()), fetch(rateUrl.toString())]);
+  if (cRes.status === 'fulfilled' && cRes.value.ok) {
+    try {
+      const d = (await cRes.value.json())?.data ?? {};
       items = d.comparisons ?? d?.data?.comparisons ?? [];
-    }
-  } catch {
-    // graceful: items=[]
+    } catch { /* graceful */ }
+  }
+  if (rRes.status === 'fulfilled' && rRes.value.ok) {
+    try {
+      saleRate = (await rRes.value.json())?.data?.summary ?? null;
+    } catch { /* graceful */ }
   }
 
-  return { sido, sigungu, items };
+  return { sido, sigungu, items, saleRate };
 }

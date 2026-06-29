@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
 
-  let { data }: { data: { sido: string; sigungu: string; items: any[] } } = $props();
+  let { data }: { data: { sido: string; sigungu: string; items: any[]; saleRate: any } } = $props();
 
   const SIDOS = ['서울특별시', '경기도', '인천광역시', '부산광역시', '대구광역시', '대전광역시'];
 
@@ -58,8 +58,24 @@
       {/each}
     </div>
 
+    <!-- 지역 낙찰가율 통계 (실제 매각결과 기반) -->
+    {#if data.saleRate && data.saleRate.sample_count > 0}
+      <div class="rounded-2xl bg-gradient-to-br from-orange-500/15 to-amber-500/5 border border-orange-500/30 p-5 mb-6">
+        <div class="text-xs text-orange-300 mb-1">{data.sido} 아파트 실제 낙찰가율 <span class="text-gray-500">(최근 매각결과 {data.saleRate.sample_count}건)</span></div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-4xl font-extrabold text-orange-400">{data.saleRate.median_sale_rate}%</span>
+          <span class="text-sm text-gray-400">감정가 대비 중앙값</span>
+        </div>
+        <p class="text-[11px] text-gray-500 mt-2 leading-relaxed">
+          보통 감정가의 <span class="text-gray-300">{data.saleRate.median_sale_rate}%</span> 선에서 낙찰됩니다 (평균 {data.saleRate.avg_sale_rate}%, 범위 {data.saleRate.min_sale_rate}~{data.saleRate.max_sale_rate}%).
+          유찰이 많을수록 낙찰가율이 낮아지지만 권리 하자 가능성도 커집니다.
+        </p>
+      </div>
+    {/if}
+
     {#if data.items.length > 0}
       <p class="text-xs text-gray-500 mb-4">{data.sido} 아파트 경매 {data.items.length}건 · 시세 대비 할인 높은 순(정상 유찰 우선)</p>
+      <p class="text-[11px] text-gray-600 mb-4">💡 위 낙찰가율로 입찰가 가늠 — 예: 감정가 5억 × {data.saleRate?.median_sale_rate ?? 80}% ≈ {data.saleRate ? (5 * data.saleRate.median_sale_rate / 100).toFixed(1) : 4}억 부근 낙찰 예상</p>
       <div class="space-y-3">
         {#each data.items as it}
           {@const a = it.auction ?? {}}
