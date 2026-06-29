@@ -223,6 +223,49 @@ export function matchRegionIntent(question: string): RegionData | null {
 }
 
 /**
+ * 지역비교 인텐트: 비교 신호 + 지역 정확히 2개 매칭 시 /compare/[slugA-vs-slugB] 경로 반환.
+ * 등장 순서를 보존해 "강남 vs 서초" → gangnam-vs-seocho. 2개가 아니면 null(→ 단일지역/채팅 폴백).
+ */
+export function matchCompareIntent(question: string): string | null {
+  const q = (question || '').trim();
+  if (!q || q.length > 40) return null;
+  if (!_COMPARE_HINTS.some((h) => q.includes(h))) return null;  // 비교 신호 없으면 비교 아님
+  // 질문 내 등장 위치 순으로 정렬 (가장 먼저 나온 지역이 좌측)
+  const hits = REGIONS
+    .map((r) => {
+      const idx = q.indexOf(r.name);
+      const idxSlug = q.indexOf(r.slug);
+      const pos = idx >= 0 ? idx : idxSlug;
+      return { r, pos };
+    })
+    .filter((h) => h.pos >= 0)
+    .sort((a, b) => a.pos - b.pos);
+  // 중복 지역 제거 (이름과 slug가 둘 다 매칭되는 경우)
+  const uniq: RegionData[] = [];
+  for (const h of hits) if (!uniq.includes(h.r)) uniq.push(h.r);
+  if (uniq.length !== 2) return null;                   // 정확히 2개일 때만 비교
+  return `${uniq[0].slugEn}-vs-${uniq[1].slugEn}`;
+}
+
+/**
+ * 평형분석 인텐트: '평형' 키워드 + 지역 정확히 1개 매칭 시 /pyeong/[slugEn] 반환.
+ * "강남구 평형별 시세", "송파 평형분석" 등. 2개+ 지역이면 비교로 가도록 null.
+ */
+const _PYEONG_HINTS = ['평형', '평수', '평대', '평형별', '평형분석', '면적별'];
+export function matchPyeongIntent(question: string): RegionData | null {
+  const q = (question || '').trim();
+  if (!q || q.length > 35) return null;
+  if (!_PYEONG_HINTS.some((h) => q.includes(h))) return null;
+  if (_COMPARE_HINTS.some((h) => q.includes(h))) return null;  // 비교는 비교 라우팅으로
+  const matched = REGIONS.filter((r) => q.includes(r.name) || q.includes(r.slug));
+  // 중복 제거(이름·slug 동시 매칭)
+  const uniq: RegionData[] = [];
+  for (const r of matched) if (!uniq.includes(r)) uniq.push(r);
+  if (uniq.length !== 1) return null;
+  return uniq[0];
+}
+
+/**
  * 단지 인텐트: 단지 브랜드/접미사 신호가 있으면 단지명 코어를 추출해 /complex/[name]로 라우팅.
  * 클라에 단지목록이 없어 휴리스틱 — 못 찾으면 /complex 화면이 채팅 폴백 버튼을 제공하므로 graceful.
  * 부동산 챗 맥락이라 시티/타운/마을/단지 같은 일반 접미사도 단지로 간주.
