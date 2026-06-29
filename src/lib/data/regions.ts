@@ -247,3 +247,46 @@ export function matchComplexIntent(question: string): string | null {
   if (name.length < 2) name = q.replace(/\d+\s*평.*$/, '').trim();
   return name.length >= 2 ? name : null;
 }
+
+// 질문에서 단지명 후보(코어)만 추출 — 백엔드 검증용. 힌트 불필요.
+export function extractComplexCandidate(question: string): string | null {
+  const q = (question || '').trim();
+  if (!q || q.length > 25) return null;
+  if (_COMPARE_HINTS.some((h) => q.includes(h))) return null;
+  let name = q
+    .replace(/\d+\s*평.*$/, '')
+    .replace(/\s*(아파트\s*)?(시세|실거래가?|매매가?|가격|얼마.*|분석.*|알려.*|어때.*|전세.*|월세.*|투자.*|전망.*|정보.*|추천.*)$/, '')
+    .trim();
+  return name.length >= 2 ? name : null;
+}
+
+const _norm = (s: string) => (s || '').replace(/[\s아파트]/g, '').toLowerCase();
+
+/**
+ * 백엔드에 단지명을 조회해 '실제 존재 + 이름 일치' 확인되면 canonical complex_name 반환.
+ * 브랜드 힌트가 없어도(은마, 도곡렉슬 등) 라우팅 가능. 오라우팅 방지를 위해
+ * 반환 단지명과 후보가 서로 포함관계일 때만 채택.
+ */
+export async function verifyComplexName(
+  question: string,
+  fetchFn: typeof fetch = fetch
+): Promise<string | null> {
+  const cand = extractComplexCandidate(question);
+  if (!cand) return null;
+  try {
+    const res = await fetchFn(
+      `https://korean-api-platform.vercel.app/api/complexes?query=${encodeURIComponent(cand)}&limit=1`
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const top = (json?.data ?? [])[0];
+    if (!top?.complex_name) return null;
+    const a = _norm(cand);
+    const b = _norm(top.complex_name);
+    // 후보와 단지명이 서로 포함(=확실한 일치)일 때만 라우팅
+    if (a.length >= 2 && (b.includes(a) || a.includes(b))) return top.complex_name;
+    return null;
+  } catch {
+    return null;
+  }
+}
