@@ -257,6 +257,7 @@ export function extractComplexCandidate(question: string): string | null {
     .replace(/\d+\s*평.*$/, '')
     .replace(/\s*(아파트\s*)?(시세|실거래가?|매매가?|가격|얼마.*|분석.*|알려.*|어때.*|전세.*|월세.*|투자.*|전망.*|정보.*|추천.*)$/, '')
     .trim();
+  name = name.replace(/\s*아파트$/, '').trim(); // "은마아파트"→"은마" (백엔드 저장명과 일치)
   return name.length >= 2 ? name : null;
 }
 
