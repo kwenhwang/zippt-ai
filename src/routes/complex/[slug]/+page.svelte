@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
 
   let { data }: {
-    data: { name: string; complex: any; transactions: any[]; jeonse: any[]; jeonseMeta: any };
+    data: { name: string; complex: any; transactions: any[]; jeonse: any[]; jeonseMeta: any; auctions: any[] };
   } = $props();
   const c = data.complex;
 
@@ -41,9 +41,11 @@
   );
 
   // 월별 평균가 추세 (선택 평형 반영, 최근 12개월)
+  // 직거래(가족간 등 시세 괴리)는 평균에서 제외 — 13.6억 같은 이상치 방지. (취소거래는 백엔드서 이미 제외)
   const monthly = $derived.by(() => {
     const m = new Map<string, { ym: string; sum: number; n: number }>();
     for (const t of filteredTxs) {
+      if (t.is_direct) continue;
       const ym = String(t.contract_year_month);
       if (!m.has(ym)) m.set(ym, { ym, sum: 0, n: 0 });
       const g = m.get(ym)!;
@@ -66,14 +68,28 @@
   }
 
   // 최근 실거래 (선택 평형 반영, 상위 8건; txs는 desc 정렬)
+  function fmtDate(d: string): string {
+    return d && d.length >= 10 ? `${d.slice(2, 4)}.${d.slice(5, 7)}.${d.slice(8, 10)}` : '';
+  }
   const recent = $derived(
     filteredTxs.slice(0, 8).map((t: any) => ({
-      ym: String(t.contract_year_month),
+      date: t.contract_date ? fmtDate(t.contract_date) : fmtMonth(String(t.contract_year_month)),
       py: supplyPyeong(t.exclusive_area),
       floor: t.floor,
-      eok: t.transaction_amount_krw / 1e8
+      eok: t.transaction_amount_krw / 1e8,
+      direct: t.is_direct
     }))
   );
+
+  // ── 경매 (해당 단지 물건) ───────────────────────────────────
+  const auctions = (data.auctions ?? []).map((a: any) => ({
+    case_no: a.case_no,
+    appraisal: a.appraisal_price_10k ? a.appraisal_price_10k / 10000 : null,
+    minBid: a.min_bid_price_10k ? a.min_bid_price_10k / 10000 : null,
+    bidCount: a.bid_count,
+    date: a.auction_date,
+    status: a.bid_status
+  }));
 
   // ── 전세 (평형별 중앙값, 백엔드 /v1/rental/jeonse-by-pyeong) ──
   // supply_pyeong → 전세 중앙값(만원). 전세가율 = 전세 / 매매.
@@ -287,7 +303,7 @@
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-white/5 text-gray-500 text-xs">
-              <th class="text-left font-medium px-3 py-2">계약월</th>
+              <th class="text-left font-medium px-3 py-2">계약일</th>
               <th class="text-left font-medium px-3 py-2">평형</th>
               <th class="text-left font-medium px-3 py-2">층</th>
               <th class="text-right font-medium px-3 py-2">거래가</th>
@@ -296,15 +312,40 @@
           <tbody>
             {#each recent as r}
               <tr class="border-t border-white/5">
-                <td class="px-3 py-2 text-gray-300">{fmtMonth(r.ym)}</td>
+                <td class="px-3 py-2 text-gray-300">{r.date}</td>
                 <td class="px-3 py-2 text-gray-300">{r.py}평</td>
                 <td class="px-3 py-2 text-gray-500">{r.floor ?? '-'}층</td>
-                <td class="px-3 py-2 text-right font-bold text-white">{r.eok.toFixed(1)}억</td>
+                <td class="px-3 py-2 text-right font-bold text-white">
+                  {r.eok.toFixed(1)}억{#if r.direct}<span class="ml-1.5 text-[10px] font-medium text-amber-400/90 align-middle">직거래</span>{/if}
+                </td>
               </tr>
             {/each}
           </tbody>
         </table>
       </div>
+      <p class="text-[11px] text-gray-600 mt-2">계약 해제(취소)된 거래는 제외했습니다. <span class="text-amber-400/90">직거래</span>는 가족 간 등 시세와 다를 수 있어 월별 평균에서 뺐습니다.</p>
+    </section>
+    {/if}
+
+    <!-- 해당 단지 경매 물건 -->
+    {#if auctions.length > 0}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-3 text-gray-200">진행 중 경매 <span class="text-xs text-gray-500 font-normal">{auctions.length}건</span></h2>
+      <div class="space-y-2">
+        {#each auctions as a}
+          <div class="rounded-xl bg-white/5 border border-white/10 p-3.5 flex items-center justify-between">
+            <div>
+              <div class="text-sm text-gray-200">{a.case_no}<span class="text-gray-600 text-xs"> · {a.bidCount}회 유찰</span></div>
+              <div class="text-xs text-gray-500 mt-0.5">감정 {a.appraisal ? a.appraisal.toFixed(1) + '억' : '-'}{#if a.date} · 매각 {String(a.date).slice(4,6)}/{String(a.date).slice(6,8)}{/if}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-base font-bold text-orange-400">{a.minBid ? a.minBid.toFixed(1) + '억' : '-'}</div>
+              <div class="text-[10px] text-gray-500">최저가</div>
+            </div>
+          </div>
+        {/each}
+      </div>
+      <p class="text-[11px] text-gray-600 mt-2">법원 경매 진행 물건입니다. 자세한 시세 대비 할인율·낙찰가율은 경매 분석에서 확인하세요. <a href="/auction" class="text-orange-400 hover:underline">경매 분석 →</a></p>
     </section>
     {/if}
 
