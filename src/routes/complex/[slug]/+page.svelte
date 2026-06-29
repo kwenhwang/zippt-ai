@@ -323,7 +323,7 @@
           </tbody>
         </table>
       </div>
-      <p class="text-[11px] text-gray-600 mt-2">계약 해제(취소)된 거래는 제외했습니다. <span class="text-amber-400/90">직거래</span>는 가족 간 등 시세와 다를 수 있어 월별 평균에서 뺐습니다.</p>
+      <p class="text-[11px] text-gray-600 mt-2">계약 해제(취소)로 신고된 거래는 제외했습니다(단, 실거래 신고는 계약 기준이며 등기 완료를 뜻하지 않습니다). <span class="text-amber-400/90">직거래</span>는 중개 없이 당사자끼리 신고한 거래로 시세와 다를 수 있어 월별 평균에서 뺐습니다(특수관계 여부는 알 수 없음).</p>
     </section>
     {/if}
 
