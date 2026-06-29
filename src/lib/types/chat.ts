@@ -16,6 +16,8 @@ export interface Message {
         status: 'pending' | 'done';
         toolResult?: unknown;
     }[];
+    // 동명 단지 선택 칩 (예: '래미안푸르지오' → 마포 1~4단지)
+    suggestions?: { label: string; sub?: string; href: string }[];
 }
 
 export interface ChatHistory {

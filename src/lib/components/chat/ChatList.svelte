@@ -204,6 +204,16 @@
 									<WidgetRenderer widget={parsed.widget} />
 								</div>
 							{/if}
+							{#if message.suggestions && message.suggestions.length > 0}
+								<div class="mt-3 flex flex-col gap-2">
+									{#each message.suggestions as s}
+										<a href={s.href} class="flex items-center justify-between px-4 py-3 rounded-xl bg-[var(--bg-secondary)]/60 border border-[var(--border)] hover:border-[var(--accent-primary)] transition-colors">
+											<span class="font-medium text-[var(--text-primary)] text-sm">{s.label}</span>
+											{#if s.sub}<span class="text-xs text-[var(--text-tertiary)]">{s.sub}</span>{/if}
+										</a>
+									{/each}
+								</div>
+							{/if}
 						{/if}
 					{/if}
 

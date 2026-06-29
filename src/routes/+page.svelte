@@ -25,7 +25,7 @@
 	import { fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { matchRegionIntent, matchComplexIntent, verifyComplexName } from '$lib/data/regions';
+	import { matchRegionIntent, resolveComplex } from '$lib/data/regions';
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as Sheet from '$lib/components/ui/sheet';
@@ -134,18 +134,25 @@
 			goto(`/area/${routedRegion.slugEn}`);
 			return;
 		}
-		// 단지명(헬리오시티 등) → 단지 분석 화면. 1)브랜드 힌트 빠른 길.
-		const complexName = matchComplexIntent(userContent);
-		if (complexName) {
-			trackEvent('route_to_complex_template', { name: complexName });
-			goto(`/complex/${encodeURIComponent(complexName)}`);
+		// 단지명 → 백엔드 조회로 라우팅 결정. 정확/단일이면 직행, 동명 다수면 선택칩 제시.
+		const resolved = await resolveComplex(userContent);
+		if (resolved?.type === 'one') {
+			trackEvent('route_to_complex_verified', { name: resolved.name });
+			goto(`/complex/${encodeURIComponent(resolved.name)}`);
 			return;
 		}
-		// 2)힌트 없어도(은마·도곡렉슬 등) 백엔드 검증으로 실존 단지면 라우팅.
-		const verified = await verifyComplexName(userContent);
-		if (verified) {
-			trackEvent('route_to_complex_verified', { name: verified });
-			goto(`/complex/${encodeURIComponent(verified)}`);
+		if (resolved?.type === 'many') {
+			trackEvent('route_to_complex_disambig', { count: resolved.options.length });
+			messages = [
+				...messages,
+				{ id: crypto.randomUUID(), role: 'user', content: userContent },
+				{
+					id: crypto.randomUUID(),
+					role: 'assistant',
+					content: `**${userContent.trim()}** — 같은 이름의 단지가 여러 곳 있어요. 어느 단지를 보시겠어요?`,
+					suggestions: resolved.options
+				}
+			];
 			return;
 		}
 

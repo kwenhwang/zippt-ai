@@ -291,3 +291,56 @@ export async function verifyComplexName(
     return null;
   }
 }
+
+export type ComplexResolution =
+  | { type: 'one'; name: string }
+  | { type: 'many'; options: { label: string; sub?: string; href: string }[] }
+  | null;
+
+/**
+ * 단지명 후보를 백엔드 조회해 라우팅 결정:
+ *  - 정확 일치 또는 후보 1개 → 'one'(직행)
+ *  - 구분되는 단지 2개+ → 'many'(선택칩 제시) — '래미안푸르지오' → 마포 1~4단지 등
+ *  - 매칭 없음 → null(채팅 폴백)
+ */
+export async function resolveComplex(
+  question: string,
+  fetchFn: typeof fetch = fetch
+): Promise<ComplexResolution> {
+  const cand = extractComplexCandidate(question);
+  if (!cand) return null;
+  // 질문형/긴 문장은 단지명 아님 → 스킵(불필요한 조회 방지)
+  if (cand.length > 18 || /[?？]|무엇|뭐|어떻게|왜|추천|비교/.test(question)) return null;
+  try {
+    const res = await fetchFn(
+      `https://korean-api-platform.vercel.app/api/complexes?query=${encodeURIComponent(cand)}&limit=6`
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json())?.data ?? [];
+    // complex_name+district로 중복 제거
+    const seen = new Set<string>();
+    const uniq: any[] = [];
+    for (const r of rows) {
+      if (!r?.complex_name) continue;
+      const k = r.complex_name + '|' + (r.district ?? '');
+      if (seen.has(k)) continue;
+      seen.add(k);
+      uniq.push(r);
+    }
+    if (uniq.length === 0) return null;
+    const na = _norm(cand);
+    const exact = uniq.find((u) => _norm(u.complex_name) === na);
+    if (exact) return { type: 'one', name: exact.complex_name };
+    if (uniq.length === 1) return { type: 'one', name: uniq[0].complex_name };
+    return {
+      type: 'many',
+      options: uniq.slice(0, 5).map((u) => ({
+        label: u.complex_name,
+        sub: u.district,
+        href: `/complex/${encodeURIComponent(u.complex_name)}`
+      }))
+    };
+  } catch {
+    return null;
+  }
+}
