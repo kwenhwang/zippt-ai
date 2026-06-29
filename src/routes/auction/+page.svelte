@@ -106,10 +106,16 @@
             <p class="text-[11px] {cp.many_fail_risk ? 'text-red-300' : 'text-gray-500'}">
               {cp.many_fail_risk ? '⚠️ ' : ''}{cp.signal_note}{#if mk.tx_count} · 시세 {mk.tx_count}건 기준{/if}
             </p>
+            {#if it.roi}
+              <div class="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+                <span class="text-gray-400">낙찰 후 월세 시 <span class="text-gray-200">{it.roi.monthly_rent_display}</span></span>
+                <span class="text-emerald-400 font-semibold">표면 수익률 {it.roi.gross_yield_pct}%</span>
+              </div>
+            {/if}
           </div>
         {/each}
       </div>
-      <p class="text-[11px] text-gray-600 mt-5 leading-relaxed">* 시세 대비 할인율 = (실거래 평균가 − 경매 최저가) / 실거래 평균가. 최저가는 감정가 기준(감정 시점이 과거일 수 있어 시세와 괴리). 실제 낙찰가는 경쟁으로 상승하며, 명도·수리·취득세·권리분석은 미반영입니다. 다회유찰(3회+)은 권리 하자 가능성이 높아 '주의'로 표시합니다. 참고용.</p>
+      <p class="text-[11px] text-gray-600 mt-5 leading-relaxed">* 시세 대비 할인율 = (실거래 평균가 − 경매 최저가) / 실거래 평균가. 최저가는 감정가 기준(감정 시점이 과거일 수 있어 시세와 괴리). 실제 낙찰가는 경쟁으로 상승하며, 명도·수리·취득세·권리분석은 미반영입니다. 다회유찰(3회+)은 권리 하자 가능성이 높아 '주의'로 표시합니다. 표면 월세수익률 = (지역 단지 월세 중앙값×12)÷최저가로, 보증금·취득세·명도·공실은 미반영한 대략치입니다. 참고용.</p>
     {:else}
       <div class="text-center py-20">
         <p class="text-gray-400 mb-2">{data.sido}에 시세 비교 가능한 아파트 경매가 없습니다.</p>

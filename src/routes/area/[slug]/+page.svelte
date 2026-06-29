@@ -209,15 +209,15 @@
       </section>
       {/if}
 
-      <!-- 가성비 TOP 3 -->
-      {#if data.valueCoplexes && data.valueCoplexes.length > 0}
+      <!-- 가성비 꿀단지 -->
+      {#if data.valueRanking && data.valueRanking.length > 0}
       <section class="mb-10">
         <h2 class="text-lg font-semibold mb-4 text-gray-200">
-          {region.name} 가성비 단지
-          <span class="text-xs text-gray-500 font-normal ml-2">종합점수 대비 가격 효율 순</span>
+          {region.name} 가성비 꿀단지
+          <span class="text-xs text-gray-500 font-normal ml-2">가격 대비 입지 효율 순</span>
         </h2>
         <div class="space-y-2">
-          {#each data.valueCoplexes as complex, i}
+          {#each data.valueRanking as complex, i}
             <button
               onclick={() => askQuestion(`${complex.complex_name} 아파트 투자 가치와 최근 시세 분석해줘`)}
               class="w-full text-left p-4 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all duration-200 group"
@@ -230,18 +230,19 @@
                     <div class="text-xs text-gray-500 mt-0.5">
                       {complex.nearest_station ? `${complex.nearest_station}역` : ''}
                       {complex.construction_year ? `· ${complex.construction_year}년` : ''}
+                      · 입지점수 {complex.scores.composite}
                     </div>
                   </div>
                 </div>
                 <div class="text-right">
                   <div class="text-sm font-bold text-green-400">{(complex.avg_price / 10000).toFixed(1)}억</div>
-                  <div class="text-xs text-gray-500">점수 {complex.scores.composite}</div>
+                  <div class="text-xs text-emerald-400/80">억당 {complex.value_score}점</div>
                 </div>
               </div>
             </button>
           {/each}
         </div>
-        <p class="text-xs text-gray-600 mt-3 text-center">낮은 가격 대비 높은 점수 = 상대적 저평가 단지</p>
+        <p class="text-xs text-gray-600 mt-3 text-center">억당 입지점수(입지점수÷매매가) 높을수록 가격 대비 입지가 우수 · 참고용</p>
       </section>
       {/if}
 

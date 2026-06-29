@@ -8,7 +8,7 @@ export function entries() {
 
 export async function load({ params }) {
   const region = getRegion(params.slug);
-  if (!region) return { region: null, complexes: [], rankInfo: null, priceByArea: [] };
+  if (!region) return { region: null, complexes: [], rankInfo: null, priceByArea: [], valueRanking: [] };
 
   const API_BASE = 'https://korean-api-platform.vercel.app';
 
@@ -21,6 +21,7 @@ export async function load({ params }) {
   let complexes: any[] = [];
   let rankInfo = null;
   let priceByArea: any[] = [];
+  let valueRanking: any[] = [];
 
   if (complexesRes.status === 'fulfilled' && complexesRes.value.ok) {
     const data = await complexesRes.value.json();
@@ -35,6 +36,20 @@ export async function load({ params }) {
       .filter((c: any) => c.scores?.composite)
       .sort((a: any, b: any) => b.scores.composite - a.scores.composite)
       .slice(0, 8);
+
+    // 가성비 꿀단지: 억당 입지점수(composite / 매매가억) 높은 순 — 가격 대비 입지 우수
+    valueRanking = unique
+      .filter((c: any) => c.scores?.composite && c.avg_price > 0)
+      .map((c: any) => ({
+        complex_name: c.complex_name,
+        avg_price: c.avg_price,
+        scores: c.scores,
+        nearest_station: c.nearest_station,
+        construction_year: c.construction_year,
+        value_score: Math.round((c.scores.composite / (c.avg_price / 10000)) * 10) / 10
+      }))
+      .sort((a: any, b: any) => b.value_score - a.value_score)
+      .slice(0, 6);
   }
 
   if (rankingsRes.status === 'fulfilled' && rankingsRes.value.ok) {
@@ -57,5 +72,5 @@ export async function load({ params }) {
     priceByArea = data?.data?.by_area || [];
   }
 
-  return { region, complexes, rankInfo, priceByArea };
+  return { region, complexes, rankInfo, priceByArea, valueRanking };
 }
