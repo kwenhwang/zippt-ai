@@ -25,7 +25,7 @@
 	import { fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { matchRegionIntent, matchCompareIntent, matchPyeongIntent, resolveComplex } from '$lib/data/regions';
+	import { matchRegionIntent, matchCompareIntent, matchPyeongIntent, matchMarketIntent, resolveComplex } from '$lib/data/regions';
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as Sheet from '$lib/components/ui/sheet';
@@ -144,6 +144,12 @@
 		if (routedRegion) {
 			trackEvent('route_to_area_template', { region: routedRegion.slugEn });
 			goto(`/area/${routedRegion.slugEn}`);
+			return;
+		}
+		// 순수 타이밍/심리 질문(지역 개요 아님) → 시장 심리 화면
+		if (matchMarketIntent(userContent)) {
+			trackEvent('route_to_market_template', {});
+			goto('/market');
 			return;
 		}
 		// 단지명 → 백엔드 조회로 라우팅 결정. 정확/단일이면 직행, 동명 다수면 선택칩 제시.

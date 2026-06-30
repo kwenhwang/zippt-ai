@@ -257,6 +257,21 @@ export function matchCompareIntent(question: string): string | null {
 }
 
 /**
+ * 시장 타이밍 인텐트: 타이밍/심리 질문(특정 지역 개요가 아닌)을 /market으로.
+ * region 라우팅 뒤에 호출하므로(지역 개요 질문은 먼저 /area), 순수 타이밍 질문만 여기로 떨어진다.
+ */
+const _MARKET_HINTS = [
+  '타이밍', '시장 심리', '매수심리', '매도심리', '시장 분위기', '시장분위기',
+  '지금 사도', '지금 팔', '지금 집 사', '사야 할', '팔아야', '상승장', '하락장',
+  '매수 타이밍', '집 살 때', '시장 전망', '지금 사야', '지금이 기회'
+];
+export function matchMarketIntent(question: string): boolean {
+  const q = (question || '').trim();
+  if (!q || q.length > 40) return false;
+  return _MARKET_HINTS.some((h) => q.includes(h));
+}
+
+/**
  * 평형분석 인텐트: '평형' 키워드 + 지역 정확히 1개 매칭 시 /pyeong/[slugEn] 반환.
  * "강남구 평형별 시세", "송파 평형분석" 등. 2개+ 지역이면 비교로 가도록 null.
  */
