@@ -1,4 +1,4 @@
-import { getRegion, getRegionEntries, regionQuery } from '$lib/data/regions';
+import { getRegion, getRegionEntries, regionQuery, regionUnsold } from '$lib/data/regions';
 
 export const prerender = true;
 
@@ -8,15 +8,19 @@ export function entries() {
 
 export async function load({ params }) {
   const region = getRegion(params.slug);
-  if (!region) return { region: null, complexes: [], rankInfo: null, priceByArea: [], valueRanking: [], complexesAll: [] };
+  if (!region) return { region: null, complexes: [], rankInfo: null, priceByArea: [], valueRanking: [], complexesAll: [], unsold: null };
 
   const API_BASE = 'https://korean-api-platform.vercel.app';
   const q = regionQuery(region); // 충돌 방지 풀네임(예: '부산광역시 남구')
+  const uk = regionUnsold(region); // 미분양 조회키 {sido, sigungu}
 
-  const [complexesRes, rankingsRes, priceByAreaRes] = await Promise.allSettled([
+  const [complexesRes, rankingsRes, priceByAreaRes, unsoldRes] = await Promise.allSettled([
     fetch(`${API_BASE}/api/complexes?district=${encodeURIComponent(q)}&limit=30&period_months=3`),
     fetch(`${API_BASE}/api/stats/rankings?sort_by=price&order=desc&limit=50`),
-    fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(q)}`)
+    fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(q)}`),
+    uk
+      ? fetch(`${API_BASE}/api/market/unsold?region=${encodeURIComponent(uk.sido)}&sigungu=${encodeURIComponent(uk.sigungu)}&limit=18`)
+      : Promise.reject(new Error('no unsold key'))
   ]);
 
   let complexes: any[] = [];
@@ -88,5 +92,31 @@ export async function load({ params }) {
     priceByArea = data?.data?.by_area || [];
   }
 
-  return { region, complexes, rankInfo, priceByArea, valueRanking, complexesAll };
+  // 미분양: 해당 시군구 최근 추세 + 전국 맥락
+  let unsold: any = null;
+  if (uk && unsoldRes.status === 'fulfilled' && unsoldRes.value.ok) {
+    try {
+      const data = await unsoldRes.value.json();
+      const series = (data?.data || [])
+        .map((x: any) => ({ period: x.period, units: x.unsold_units }))
+        .sort((a: any, b: any) => a.period.localeCompare(b.period));
+      if (series.length > 0) {
+        const latest = series[series.length - 1];
+        const prev = series.length >= 2 ? series[series.length - 2] : null;
+        const yearAgo = series.length >= 13 ? series[series.length - 13] : series[0];
+        unsold = {
+          sigungu: uk.sigungu,
+          sido: uk.sido,
+          latest: latest.units,
+          latestPeriod: latest.period,
+          momChange: prev ? latest.units - prev.units : null,
+          yoyChange: yearAgo ? latest.units - yearAgo.units : null,
+          series: series.slice(-12),
+          national: data?.meta?.latest_national ?? null
+        };
+      }
+    } catch { /* graceful */ }
+  }
+
+  return { region, complexes, rankInfo, priceByArea, valueRanking, complexesAll, unsold };
 }

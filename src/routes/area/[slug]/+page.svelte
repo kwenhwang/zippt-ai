@@ -8,6 +8,11 @@
   let { data }: { data: PageData } = $props();
   const region = data.region;
 
+  // 미분양 스파크라인 최대값 (막대 높이 정규화)
+  const unsoldMax = $derived(
+    data.unsold ? Math.max(1, ...data.unsold.series.map((s: any) => s.units)) : 1
+  );
+
   // 다른 지역과 비교 — 현재 지역 제외
   const otherRegions = $derived(REGIONS.filter((r) => r.slugEn !== region?.slugEn));
   let compareTarget = $state('');
@@ -259,6 +264,51 @@
           {/each}
         </div>
         <p class="text-xs text-gray-600 mt-3 text-center">* 전용면적 기준, 국토교통부 실거래 데이터</p>
+      </section>
+      {/if}
+
+      <!-- D. 미분양 현황 (시장 공급 신호) -->
+      {#if data.unsold}
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-1 text-gray-200">{region.name} 미분양<InfoTip text="분양했지만 안 팔리고 남은 새 아파트 물량입니다. 숫자가 크고 늘어나면 공급과잉·매수세 약화(가격 하방 압력) 신호, 적고 줄면 수요가 탄탄하다는 뜻입니다. 단, 기존(구축) 매물은 포함하지 않으므로 0이어도 살 집이 없다는 의미는 아닙니다." /></h2>
+        <p class="text-xs text-gray-500 mb-3">분양 후 안 팔린 새 아파트 · 국토교통부 {data.unsold.latestPeriod} 기준</p>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
+          <div class="flex items-end justify-between gap-4">
+            <div>
+              <div class="text-3xl font-bold {data.unsold.latest === 0 ? 'text-emerald-400' : data.unsold.latest >= 500 ? 'text-red-400' : 'text-white'}">
+                {data.unsold.latest.toLocaleString()}<span class="text-base font-medium text-gray-500"> 호</span>
+              </div>
+              <div class="text-xs text-gray-500 mt-1">{data.unsold.sigungu} 미분양</div>
+            </div>
+            {#if data.unsold.series.length > 1}
+            <div class="flex items-end gap-0.5 h-12" title="최근 {data.unsold.series.length}개월 추세">
+              {#each data.unsold.series as s}
+                <div class="w-1.5 rounded-t bg-orange-500/50" style="height: {Math.max(6, (s.units / unsoldMax) * 100)}%" title="{s.period}: {s.units.toLocaleString()}호"></div>
+              {/each}
+            </div>
+            {/if}
+          </div>
+          <div class="mt-3 pt-3 border-t border-white/5 flex flex-wrap gap-x-5 gap-y-1 text-xs">
+            {#if data.unsold.momChange !== null}
+              <span class="text-gray-500">전월 대비
+                <span class="{data.unsold.momChange > 0 ? 'text-red-400' : data.unsold.momChange < 0 ? 'text-emerald-400' : 'text-gray-400'} font-medium">
+                  {data.unsold.momChange > 0 ? '+' : ''}{data.unsold.momChange.toLocaleString()}호
+                </span>
+              </span>
+            {/if}
+            {#if data.unsold.yoyChange !== null}
+              <span class="text-gray-500">1년 전 대비
+                <span class="{data.unsold.yoyChange > 0 ? 'text-red-400' : data.unsold.yoyChange < 0 ? 'text-emerald-400' : 'text-gray-400'} font-medium">
+                  {data.unsold.yoyChange > 0 ? '+' : ''}{data.unsold.yoyChange.toLocaleString()}호
+                </span>
+              </span>
+            {/if}
+            {#if data.unsold.national}
+              <span class="text-gray-500">전국 <span class="text-gray-300 font-medium">{data.unsold.national.unsold_units.toLocaleString()}호</span></span>
+            {/if}
+          </div>
+        </div>
+        <p class="text-[11px] text-gray-600 mt-2 leading-relaxed">* 미분양은 '안 팔린 신축 분양물량'입니다. 0이어도 기존(구축) 매물은 있을 수 있어요. 숫자가 크고 늘어나면 공급과잉·약세 신호로 참고하세요.</p>
       </section>
       {/if}
 

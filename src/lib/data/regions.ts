@@ -20,6 +20,35 @@ export function regionQuery(r: Pick<RegionData, 'name' | 'district'>): string {
   return r.district ?? r.name;
 }
 
+// 미분양 조회용 (시도 short, 시군구) 해석.
+// 미분양 데이터: region_name=시도 short(서울/경기/부산…), sub_region=시군구(강남구/수원시…).
+const _SIDO_LONG_TO_SHORT: Record<string, string> = {
+  '서울특별시': '서울', '부산광역시': '부산', '대구광역시': '대구', '인천광역시': '인천',
+  '광주광역시': '광주', '대전광역시': '대전', '울산광역시': '울산', '세종특별자치시': '세종',
+  '경기도': '경기', '강원특별자치도': '강원', '강원도': '강원', '충청북도': '충북', '충청남도': '충남',
+  '전라북도': '전북', '전북특별자치도': '전북', '전라남도': '전남', '경상북도': '경북',
+  '경상남도': '경남', '제주특별자치도': '제주'
+};
+// district 없는 bare-name 경기 시 (나머지 bare-name은 서울 구로 간주)
+const _GYEONGGI_CITIES = new Set(['분당구', '수원시', '성남시', '용인시', '고양시', '안산시', '안양시',
+  '남양주시', '평택시', '김포시', '광명시', '의정부시', '군포시', '하남시', '과천시']);
+// 미분양은 시 단위라 자치구를 모시(母市)로 치환
+const _SIGUNGU_OVERRIDE: Record<string, string> = { '분당구': '성남시' };
+
+export function regionUnsold(r: Pick<RegionData, 'name' | 'district'>): { sido: string; sigungu: string } | null {
+  if (r.district) {
+    const parts = r.district.split(' ');
+    const sido = _SIDO_LONG_TO_SHORT[parts[0]] ?? parts[0];
+    const sigungu = parts.slice(1).join(' ');
+    if (!sigungu) return null;
+    return { sido, sigungu: _SIGUNGU_OVERRIDE[sigungu] ?? sigungu };
+  }
+  const name = r.name;
+  if (_GYEONGGI_CITIES.has(name)) return { sido: '경기', sigungu: _SIGUNGU_OVERRIDE[name] ?? name };
+  if (name.endsWith('구')) return { sido: '서울', sigungu: _SIGUNGU_OVERRIDE[name] ?? name };
+  return null;
+}
+
 export const REGIONS: RegionData[] = [
   // 서울 강남권
   {
