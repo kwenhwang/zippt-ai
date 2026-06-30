@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { goto } from '$app/navigation';
+  import InfoTip from '$lib/components/InfoTip.svelte';
 
   let { data }: { data: PageData } = $props();
 
@@ -106,7 +107,7 @@
       <!-- 히어로: 전국 현재 국면 -->
       <div class="text-center mb-10">
         <div class="inline-block bg-orange-500/10 border border-orange-500/20 rounded-full px-4 py-1.5 text-orange-400 text-sm font-medium mb-5">
-          부동산 소비심리지수 · {fmtMonth(data.latestPeriod)} 기준
+          부동산 소비심리지수<InfoTip text="설문 기반의 부동산 매수·매도 심리 지표입니다(0~200, 100=중립). 95 미만 하강 · 95~115 보합 · 115 이상 상승 국면. 심리 지표라 실제 가격·거래량과 다를 수 있습니다." /> · {fmtMonth(data.latestPeriod)} 기준
         </div>
         <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">지금 부동산 시장 심리는?</h1>
         <div class="flex items-end justify-center gap-3">

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { goto } from '$app/navigation';
+  import InfoTip from '$lib/components/InfoTip.svelte';
 
   let { data }: { data: PageData } = $props();
   const region = data.region;
@@ -126,7 +127,7 @@
           <h2 class="text-sm font-semibold text-gray-200 mb-2">한눈에 보기</h2>
           <ul class="text-xs text-gray-400 space-y-1 leading-relaxed">
             <li>· 거래가 가장 활발한 평형: <span class="text-gray-200 font-medium">{mostTraded?.area_range}</span> (전체의 {pct(mostTraded?.transaction_count || 0)}%)</li>
-            <li>· 평당가가 가장 높은 평형: <span class="text-gray-200 font-medium">{highestPy?.area_range}</span> ({highestPy?.avg_price_per_py?.toLocaleString()}만/평)</li>
+            <li>· 평당가<InfoTip text="1평(약 3.3㎡)당 가격입니다. 평형이 다른 구간을 같은 기준으로 비교할 때 씁니다. 보통 소형일수록 평당가가 높습니다." />가 가장 높은 평형: <span class="text-gray-200 font-medium">{highestPy?.area_range}</span> ({highestPy?.avg_price_per_py?.toLocaleString()}만/평)</li>
             <li class="text-gray-600">· 평당가는 보통 소형일수록 높습니다(소형 선호·희소성). 절대가격과 다르게 보세요.</li>
           </ul>
         </section>

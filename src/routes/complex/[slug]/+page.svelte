@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import InfoTip from '$lib/components/InfoTip.svelte';
 
   let { data }: {
     data: { name: string; complex: any; transactions: any[]; jeonse: any[]; jeonseMeta: any; auctions: any[]; region: { name: string; slugEn: string } | null; regionAvgPrice: number | null };
@@ -288,14 +289,14 @@
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {#if repRatio != null}
           <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
-            <div class="text-xs text-gray-500 mb-1">대표 전세가율{#if repGroup} · {repGroup.py}평{/if}</div>
+            <div class="text-xs text-gray-500 mb-1">대표 전세가율{#if repGroup} · {repGroup.py}평{/if}<InfoTip text="전세 보증금 중앙값 ÷ 매매 평균가. 높을수록(70%↑) 전세 끼고 살 때 필요한 목돈(갭)이 적고 전세 수요가 강합니다. 80%를 넘으면 전세금 회수가 어려운 깡통전세 위험이 커집니다." /></div>
             <div class="text-2xl font-bold {repRatio >= 80 ? 'text-red-400' : repRatio >= 70 ? 'text-amber-400' : 'text-emerald-400'}">{repRatio}%</div>
             <div class="text-[10px] text-gray-600 mt-1">{repRatio >= 80 ? '갭 매우 적음' : repRatio >= 70 ? '갭 적음' : '매매-전세 갭 여유'}</div>
           </div>
         {/if}
         {#if velocity != null}
           <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
-            <div class="text-xs text-gray-500 mb-1">거래 활성도</div>
+            <div class="text-xs text-gray-500 mb-1">거래 활성도<InfoTip text="분석 기간 누적 거래건수 ÷ 총 세대수. 단지가 얼마나 자주 거래되는지(환금성)를 가늠합니다. 분석 기간이 길수록 값이 커지므로 절대 수치보다 참고용입니다." /></div>
             <div class="text-2xl font-bold text-white">{velocity}<span class="text-base text-gray-500">%</span></div>
             <div class="text-[10px] text-gray-600 mt-1">세대 {households?.toLocaleString()} 대비 거래{#if periodStart} ({fmtMonth(periodStart).slice(0,4)}~){/if}</div>
           </div>
@@ -449,7 +450,7 @@
 
     <!-- 입지 점수 -->
     <section class="mb-8">
-      <h2 class="text-lg font-semibold mb-4 text-gray-200">입지 점수 <span class="text-xs text-gray-500 font-normal">(전국 상대 0~100)</span></h2>
+      <h2 class="text-lg font-semibold mb-4 text-gray-200">입지 점수 <span class="text-xs text-gray-500 font-normal">(전국 상대 0~100)</span><InfoTip text="교통·학군·편의 시설을 전국 단지와 비교해 0~100으로 환산한 추정값입니다. 절대 등급이 아니라 상대 비교용이며, 특히 학군은 백분위·근접 중학교 기반 추정이라 실제 명문학군과 다를 수 있습니다." /></h2>
       <div class="space-y-3">
         {#each scoreItems as s}
           <div class="flex items-center gap-3">

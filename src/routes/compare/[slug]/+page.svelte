@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
   import { goto } from '$app/navigation';
+  import InfoTip from '$lib/components/InfoTip.svelte';
 
   let { data }: { data: PageData } = $props();
   const A = data.regionA;
@@ -120,7 +121,7 @@
 
         <!-- 평당 거래가 -->
         <div class="mt-3">
-          <div class="text-center text-xs text-gray-500 mb-1">평당 거래가</div>
+          <div class="text-center text-xs text-gray-500 mb-1">평당 거래가<InfoTip text="1평(약 3.3㎡)당 가격입니다. 평형 구성이 다른 두 지역을 같은 기준으로 비교할 때 평균가보다 정확합니다. 보통 소형 비중이 높을수록 평당가가 올라갑니다." /></div>
           <div class="grid grid-cols-2 gap-3">
             <div class="bg-white/5 border rounded-2xl p-4 text-center {winPy === 'a' ? 'border-orange-500/40' : 'border-white/10'}">
               <div class="text-xl font-bold text-orange-400">{data.rankA?.avgPricePerPy ?? '-'}</div>
