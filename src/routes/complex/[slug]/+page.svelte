@@ -196,6 +196,33 @@
     return pts;
   });
 
+  // ── 관점별 체크포인트: 목적이 다르면 봐야 할 지표가 다르다 ──
+  const perspectives = $derived.by(() => {
+    const list = [
+      {
+        icon: '🏠', label: '실거주',
+        items: [
+          `입지 — 교통 ${scores.transit ?? '-'} · 학군 ${scores.school != null ? Math.round(scores.school) : '-'} · 편의 ${scores.convenience ?? '-'}`,
+          groups.length > 1 ? `평형 선택지 ${groups.length}종` : null
+        ]
+      },
+      {
+        icon: '💰', label: '투자',
+        items: [
+          repRatio != null ? `전세가율 ${repRatio}% — 갭 ${repRatio >= 70 ? '적어 접근 쉬움' : repRatio <= 50 ? '커서 목돈 필요' : '보통'}` : null,
+          velocity != null ? `거래 활성도 ${velocity}% (환금성 참고)` : null
+        ]
+      },
+      {
+        icon: '🎓', label: '학군',
+        items: [
+          `학군 점수 ${scores.school != null ? Math.round(scores.school) : '-'} (전국 상대·추정)`
+        ]
+      }
+    ];
+    return list.map((p) => ({ ...p, items: p.items.filter(Boolean) as string[] })).filter((p) => p.items.length);
+  });
+
   function ask(q: string) {
     goto(`/?q=${encodeURIComponent(q)}`);
   }
@@ -279,6 +306,26 @@
         {/each}
       </ul>
       <p class="text-[11px] text-gray-600 mt-2.5">* 데이터가 보여주는 특징일 뿐 매수/매도 권유가 아닙니다. 실제 판단은 직접 확인하세요.</p>
+    </section>
+    {/if}
+
+    <!-- 관점별 체크포인트 -->
+    {#if perspectives.length > 0}
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-1 text-gray-200">관점별로 보면</h2>
+      <p class="text-xs text-gray-500 mb-3">목적이 다르면 봐야 할 지표가 다릅니다.</p>
+      <div class="grid sm:grid-cols-3 gap-3">
+        {#each perspectives as p}
+          <div class="rounded-2xl bg-white/5 border border-white/10 p-4">
+            <div class="text-sm font-semibold text-gray-200 mb-2">{p.icon} {p.label}</div>
+            <ul class="space-y-1">
+              {#each p.items as it}
+                <li class="text-[11px] text-gray-400 leading-relaxed">{it}</li>
+              {/each}
+            </ul>
+          </div>
+        {/each}
+      </div>
     </section>
     {/if}
 

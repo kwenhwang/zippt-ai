@@ -8,7 +8,7 @@ export function entries() {
 
 export async function load({ params }) {
   const region = getRegion(params.slug);
-  if (!region) return { region: null, complexes: [], rankInfo: null, priceByArea: [], valueRanking: [] };
+  if (!region) return { region: null, complexes: [], rankInfo: null, priceByArea: [], valueRanking: [], complexesAll: [] };
 
   const API_BASE = 'https://korean-api-platform.vercel.app';
 
@@ -22,6 +22,7 @@ export async function load({ params }) {
   let rankInfo = null;
   let priceByArea: any[] = [];
   let valueRanking: any[] = [];
+  let complexesAll: any[] = [];
 
   if (complexesRes.status === 'fulfilled' && complexesRes.value.ok) {
     const data = await complexesRes.value.json();
@@ -50,6 +51,20 @@ export async function load({ params }) {
       }))
       .sort((a: any, b: any) => b.value_score - a.value_score)
       .slice(0, 6);
+
+    // 관점별 재정렬용 단지 풀 (실거주/학군/가성비 토글) — 클라에서 정렬
+    complexesAll = unique
+      .filter((c: any) => c.scores?.composite && c.avg_price > 0)
+      .map((c: any) => ({
+        complex_name: c.complex_name,
+        avg_price: c.avg_price,
+        scores: c.scores,
+        nearest_station: c.nearest_station,
+        construction_year: c.construction_year,
+        value_score: Math.round((c.scores.composite / (c.avg_price / 10000)) * 10) / 10
+      }))
+      .sort((a: any, b: any) => b.scores.composite - a.scores.composite)
+      .slice(0, 20);
   }
 
   if (rankingsRes.status === 'fulfilled' && rankingsRes.value.ok) {
@@ -72,5 +87,5 @@ export async function load({ params }) {
     priceByArea = data?.data?.by_area || [];
   }
 
-  return { region, complexes, rankInfo, priceByArea, valueRanking };
+  return { region, complexes, rankInfo, priceByArea, valueRanking, complexesAll };
 }

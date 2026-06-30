@@ -16,6 +16,23 @@
     goto(`/compare/${region.slugEn}-vs-${compareTarget}`);
   }
 
+  // 관점별 단지 추천 — 같은 데이터, 목적이 바뀌면 순위가 바뀐다
+  const PURPOSES = [
+    { key: 'live', label: '실거주', desc: '교통·학군·편의가 고른 단지', metric: '종합', val: (c: any) => c.scores.composite },
+    { key: 'school', label: '학군', desc: '학군 점수가 높은 단지', metric: '학군', val: (c: any) => c.scores?.school ?? 0 },
+    { key: 'value', label: '가성비', desc: '가격 대비 입지가 좋은 단지(억당 입지점수)', metric: '억당', val: (c: any) => c.value_score }
+  ];
+  let purpose = $state('live');
+  const purposeMeta = $derived(PURPOSES.find((p) => p.key === purpose) ?? PURPOSES[0]);
+  const purposeList = $derived(
+    [...(data.complexesAll ?? [])].sort((a, b) => purposeMeta.val(b) - purposeMeta.val(a)).slice(0, 6)
+  );
+  function metricVal(c: any) {
+    if (purpose === 'school') return Math.round(c.scores?.school ?? 0);
+    if (purpose === 'value') return c.value_score;
+    return c.scores.composite;
+  }
+
   let rankInfo = $state(data.rankInfo);
   let complexes = $state(data.complexes);
   let priceByArea = $state(data.priceByArea);
@@ -156,15 +173,23 @@
       </section>
       {/if}
 
-      <!-- B. 단지 종합점수 TOP 섹션 -->
-      {#if complexes.length > 0}
+      <!-- B. 관점별 단지 추천 (실거주/학군/가성비) -->
+      {#if (data.complexesAll ?? []).length > 0}
       <section class="mb-10">
-        <h2 class="text-lg font-semibold mb-4 text-gray-200">
-          {region.name} 주요 단지 분석
-          <span class="text-xs text-gray-500 font-normal ml-2">교통·학군·편의 종합점수 순</span>
-        </h2>
+        <h2 class="text-lg font-semibold mb-1 text-gray-200">{region.name} 목적별 추천 단지</h2>
+        <p class="text-xs text-gray-500 mb-3">무엇을 가장 중요하게 보세요? 목적에 따라 추천이 달라집니다.</p>
+        <!-- 관점 토글 -->
+        <div class="flex gap-2 mb-2">
+          {#each PURPOSES as p}
+            <button
+              onclick={() => (purpose = p.key)}
+              class="px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all {purpose === p.key ? 'bg-orange-500 text-black border-orange-400' : 'bg-white/5 text-gray-300 border-white/10 hover:border-orange-500/40'}"
+            >{p.label}</button>
+          {/each}
+        </div>
+        <p class="text-[11px] text-gray-500 mb-3">→ {purposeMeta.desc}</p>
         <div class="space-y-2">
-          {#each complexes as complex, i}
+          {#each purposeList as complex, i}
             <button
               onclick={() => goto(`/complex/${encodeURIComponent(complex.complex_name)}`)}
               class="w-full text-left p-4 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all duration-200 group"
@@ -181,15 +206,15 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-3 text-right">
-                  {#if !complex.prices_by_area?.length && complex.avg_price}
+                  {#if complex.avg_price}
                   <div class="text-right">
                     <div class="text-sm font-bold text-white">{(complex.avg_price / 10000).toFixed(1)}억</div>
                     <div class="text-xs text-gray-600">평균</div>
                   </div>
                   {/if}
                   <div class="bg-orange-500/10 border border-orange-500/20 rounded-lg px-2 py-1 text-center min-w-[52px]">
-                    <div class="text-sm font-bold text-orange-400">{complex.scores.composite}</div>
-                    <div class="text-[10px] text-gray-500">종합</div>
+                    <div class="text-sm font-bold text-orange-400">{metricVal(complex)}</div>
+                    <div class="text-[10px] text-gray-500">{purposeMeta.metric}</div>
                   </div>
                 </div>
               </div>
@@ -201,58 +226,10 @@
                 <span>·</span>
                 <span>편의 {complex.scores.convenience}</span>
               </div>
-              <!-- 평형별 가격 (prices_by_area) -->
-              {#if complex.prices_by_area && complex.prices_by_area.length > 0}
-              <div class="mt-2 pt-2 border-t border-white/5 grid grid-cols-2 gap-x-3 gap-y-1">
-                {#each complex.prices_by_area.slice(0, 4) as pa}
-                <div class="flex items-center justify-between text-[10px]">
-                  <span class="text-gray-600">전용 {pa.exclusive_area}㎡ <span class="text-gray-700">({pa.pyeong}평)</span></span>
-                  <span class="text-gray-300 font-medium">{pa.avg_price_display}</span>
-                </div>
-                {/each}
-              </div>
-              {/if}
             </button>
           {/each}
         </div>
-        <p class="text-xs text-gray-600 mt-3 text-center">클릭하면 AI가 해당 단지 실거래 상세 분석을 제공합니다</p>
-      </section>
-      {/if}
-
-      <!-- 가성비 꿀단지 -->
-      {#if data.valueRanking && data.valueRanking.length > 0}
-      <section class="mb-10">
-        <h2 class="text-lg font-semibold mb-4 text-gray-200">
-          {region.name} 가성비 꿀단지
-          <span class="text-xs text-gray-500 font-normal ml-2">가격 대비 입지 효율 순</span>
-        </h2>
-        <div class="space-y-2">
-          {#each data.valueRanking as complex, i}
-            <button
-              onclick={() => askQuestion(`${complex.complex_name} 아파트 투자 가치와 최근 시세 분석해줘`)}
-              class="w-full text-left p-4 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all duration-200 group"
-            >
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <span class="text-xs font-bold text-green-400 w-5">{i + 1}</span>
-                  <div>
-                    <div class="font-medium text-gray-200 text-sm group-hover:text-white">{complex.complex_name}</div>
-                    <div class="text-xs text-gray-500 mt-0.5">
-                      {complex.nearest_station ? `${complex.nearest_station}역` : ''}
-                      {complex.construction_year ? `· ${complex.construction_year}년` : ''}
-                      · 입지점수 {complex.scores.composite}
-                    </div>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <div class="text-sm font-bold text-green-400">{(complex.avg_price / 10000).toFixed(1)}억</div>
-                  <div class="text-xs text-emerald-400/80">억당 {complex.value_score}점</div>
-                </div>
-              </div>
-            </button>
-          {/each}
-        </div>
-        <p class="text-xs text-gray-600 mt-3 text-center">억당 입지점수(입지점수÷매매가) 높을수록 가격 대비 입지가 우수 · 참고용</p>
+        <p class="text-xs text-gray-600 mt-3 text-center">같은 지역도 목적(실거주·학군·가성비)에 따라 1순위가 달라집니다 · 점수는 추정 입지값</p>
       </section>
       {/if}
 
