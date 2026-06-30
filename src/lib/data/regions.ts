@@ -211,12 +211,29 @@ export function getRegionEntries() {
 const _COMPARE_HINTS = ['vs', 'versus', '비교', '대비', '차이', '어디가'];
 const _OVERVIEW_HINTS = ['시세', '평균', '전세', '매매', '투자', '추천', '분석', '전망', '어때', '얼마', '현황', '정보', '부동산', '아파트', '가격'];
 
+// 지역 별칭: 전체명에서 끝의 '구'/'시'를 뗀 짧은 형태(강남구→강남)도 인식. 2자 미만(중구→중)은 모호하므로 제외.
+function regionAlias(r: RegionData): string | null {
+  const base = r.name.replace(/(구|시)$/, '');
+  return base.length >= 2 && base !== r.name ? base : null;
+}
+
+// 질문에서 지역이 등장하는 가장 이른 위치(없으면 -1) — 전체명/slug/별칭 모두 고려.
+function regionPos(q: string, r: RegionData): number {
+  const cands = [r.name, r.slug, regionAlias(r)].filter(Boolean) as string[];
+  let best = -1;
+  for (const c of cands) {
+    const i = q.indexOf(c);
+    if (i >= 0 && (best === -1 || i < best)) best = i;
+  }
+  return best;
+}
+
 export function matchRegionIntent(question: string): RegionData | null {
   const q = (question || '').trim();
   if (!q || q.length > 30) return null;                 // 길면 복잡 질문 → 채팅
   if (/\d+\s*평/.test(q)) return null;                  // 특정 평형(단지 시세 등) → 채팅
   if (_COMPARE_HINTS.some((h) => q.includes(h))) return null; // 비교 질문 → 채팅
-  const matched = REGIONS.filter((r) => q.includes(r.name) || q.includes(r.slug));
+  const matched = REGIONS.filter((r) => regionPos(q, r) >= 0);
   if (matched.length !== 1) return null;                // 0개 또는 2개+ (비교성) → 채팅
   if (!_OVERVIEW_HINTS.some((k) => q.includes(k))) return null; // 개요 키워드 없으면 → 채팅
   return matched[0];
@@ -230,21 +247,13 @@ export function matchCompareIntent(question: string): string | null {
   const q = (question || '').trim();
   if (!q || q.length > 40) return null;
   if (!_COMPARE_HINTS.some((h) => q.includes(h))) return null;  // 비교 신호 없으면 비교 아님
-  // 질문 내 등장 위치 순으로 정렬 (가장 먼저 나온 지역이 좌측)
+  // 질문 내 등장 위치 순으로 정렬 (가장 먼저 나온 지역이 좌측). 전체명/별칭(강남) 모두 인식.
   const hits = REGIONS
-    .map((r) => {
-      const idx = q.indexOf(r.name);
-      const idxSlug = q.indexOf(r.slug);
-      const pos = idx >= 0 ? idx : idxSlug;
-      return { r, pos };
-    })
+    .map((r) => ({ r, pos: regionPos(q, r) }))
     .filter((h) => h.pos >= 0)
     .sort((a, b) => a.pos - b.pos);
-  // 중복 지역 제거 (이름과 slug가 둘 다 매칭되는 경우)
-  const uniq: RegionData[] = [];
-  for (const h of hits) if (!uniq.includes(h.r)) uniq.push(h.r);
-  if (uniq.length !== 2) return null;                   // 정확히 2개일 때만 비교
-  return `${uniq[0].slugEn}-vs-${uniq[1].slugEn}`;
+  if (hits.length !== 2) return null;                   // 정확히 2개일 때만 비교
+  return `${hits[0].r.slugEn}-vs-${hits[1].r.slugEn}`;
 }
 
 /**
@@ -257,12 +266,9 @@ export function matchPyeongIntent(question: string): RegionData | null {
   if (!q || q.length > 35) return null;
   if (!_PYEONG_HINTS.some((h) => q.includes(h))) return null;
   if (_COMPARE_HINTS.some((h) => q.includes(h))) return null;  // 비교는 비교 라우팅으로
-  const matched = REGIONS.filter((r) => q.includes(r.name) || q.includes(r.slug));
-  // 중복 제거(이름·slug 동시 매칭)
-  const uniq: RegionData[] = [];
-  for (const r of matched) if (!uniq.includes(r)) uniq.push(r);
-  if (uniq.length !== 1) return null;
-  return uniq[0];
+  const matched = REGIONS.filter((r) => regionPos(q, r) >= 0);
+  if (matched.length !== 1) return null;
+  return matched[0];
 }
 
 /**
