@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
 
   let { data }: {
-    data: { name: string; complex: any; transactions: any[]; jeonse: any[]; jeonseMeta: any; auctions: any[] };
+    data: { name: string; complex: any; transactions: any[]; jeonse: any[]; jeonseMeta: any; auctions: any[]; region: { name: string; slugEn: string } | null };
   } = $props();
   const c = data.complex;
 
@@ -414,6 +414,23 @@
       </div>
       <p class="text-[11px] text-gray-600 mt-3 leading-relaxed">* 학군: 근접 중학교 기반 전국 백분위 추정치(기준 2026-01)로, 명문학군 명성을 직접 반영하지 않습니다. 참고용.</p>
     </section>
+
+    <!-- 이 지역 더 보기 -->
+    {#if data.region}
+    <section class="border-t border-white/10 pt-7">
+      <h2 class="text-sm font-semibold mb-3 text-gray-300">{data.region.name} 더 보기</h2>
+      <div class="grid grid-cols-2 gap-2">
+        <a href="/area/{data.region.slugEn}" class="p-3 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all text-sm text-gray-300">
+          {data.region.name} 종합 분석 <span class="text-orange-400">→</span>
+          <div class="text-[11px] text-gray-600 mt-0.5">시세·주요단지·순위</div>
+        </a>
+        <a href="/pyeong/{data.region.slugEn}" class="p-3 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/40 hover:bg-orange-500/5 transition-all text-sm text-gray-300">
+          {data.region.name} 평형분석 <span class="text-orange-400">→</span>
+          <div class="text-[11px] text-gray-600 mt-0.5">소형~대형 평형별 시세</div>
+        </a>
+      </div>
+    </section>
+    {/if}
 
     <!-- AI 추가 질문 -->
     <section class="border-t border-white/10 pt-7">

@@ -1,6 +1,8 @@
 // 단지 분석 화면 데이터 로드.
 // 1) /api/complexes?query= → 단지 요약(시세·평형별·점수)
 // 2) /api/transactions?complex_name= → 실거래 내역(분석기간·월별추세·최근거래용)
+import { getRegion } from '$lib/data/regions';
+
 export const prerender = false;
 
 const API_BASE = 'https://korean-api-platform.vercel.app';
@@ -65,5 +67,13 @@ export async function load({ params, fetch }) {
     }
   }
 
-  return { name, complex, transactions, jeonse, jeonseMeta, auctions };
+  // district("서울특별시 마포구 아현동")의 시군구로 지역 템플릿(/area·/pyeong) 연결
+  let region: { name: string; slugEn: string } | null = null;
+  if (complex?.district) {
+    const sigungu = complex.district.split(' ')[1];
+    const r = sigungu ? getRegion(sigungu) : undefined;
+    if (r) region = { name: r.name, slugEn: r.slugEn };
+  }
+
+  return { name, complex, transactions, jeonse, jeonseMeta, auctions, region };
 }
