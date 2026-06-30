@@ -178,6 +178,23 @@
     { label: '편의', val: scores.convenience, note: false }
   ];
 
+  // ── "데이터로 본 한 줄 해석" — 단정 아닌 가이드. 기준점 명확한 신호(구평균 위치·전세가율)만 사용 ──
+  const summaryPoints = $derived.by(() => {
+    const pts: string[] = [];
+    if (priceAnchor) {
+      if (priceAnchor.pct >= 10) pts.push(`${priceAnchor.regionName}에서 가격대가 높은 편이에요(평균 +${priceAnchor.pct}%). 상급 단지로 볼 수 있어요.`);
+      else if (priceAnchor.pct <= -10) pts.push(`${priceAnchor.regionName} 평균보다 ${Math.abs(priceAnchor.pct)}% 저렴해 진입 부담이 상대적으로 낮은 편이에요.`);
+      else pts.push(`${priceAnchor.regionName} 평균과 비슷한 가격대예요.`);
+    }
+    if (repRatio != null) {
+      if (repRatio >= 80) pts.push(`전세가율이 ${repRatio}%로 매우 높아요. 전세 끼고 사는 갭은 적지만, 전세금 회수 위험(깡통전세)을 꼭 점검하세요.`);
+      else if (repRatio >= 70) pts.push(`전세가율 ${repRatio}% — 전세를 끼면 필요한 목돈(갭)이 적은 편이라 투자 접근이 비교적 쉬워요.`);
+      else if (repRatio <= 50) pts.push(`전세가율 ${repRatio}%로 낮아요. 전세를 껴도 목돈이 많이 필요해, 투자보다 실거주에 가까운 단지예요.`);
+      else pts.push(`전세가율 ${repRatio}% — 실거주·갭투자 모두 무난한 편이에요.`);
+    }
+    return pts;
+  });
+
   function ask(q: string) {
     goto(`/?q=${encodeURIComponent(q)}`);
   }
@@ -249,6 +266,19 @@
       {/if}
       <span class="text-gray-600 text-xs block mt-0.5">* {priceAnchor.regionName} 전체 아파트 평균가(최근 3개월) 기준</span>
     </div>
+    {/if}
+
+    <!-- 데이터로 본 한 줄 해석 -->
+    {#if summaryPoints.length > 0}
+    <section class="mb-8 rounded-2xl bg-orange-500/5 border border-orange-500/15 p-4">
+      <h2 class="text-sm font-semibold text-gray-200 mb-2">💡 데이터로 보면</h2>
+      <ul class="space-y-1.5">
+        {#each summaryPoints as p}
+          <li class="text-sm text-gray-300 leading-relaxed flex gap-2"><span class="text-orange-400">·</span><span>{p}</span></li>
+        {/each}
+      </ul>
+      <p class="text-[11px] text-gray-600 mt-2.5">* 데이터가 보여주는 특징일 뿐 매수/매도 권유가 아닙니다. 실제 판단은 직접 확인하세요.</p>
+    </section>
     {/if}
 
     <!-- 투자 판단 신호 (전세가율·거래활성도·깡통전세) -->

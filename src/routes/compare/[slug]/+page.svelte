@@ -36,6 +36,23 @@
   const gapAvg = $derived(gapPct(data.rankA?.avgPriceRaw, data.rankB?.avgPriceRaw));
   const gapPy = $derived(gapPct(data.rankA?.avgPricePerPyRaw, data.rankB?.avgPricePerPyRaw));
 
+  // "그래서 어디?" 목적별 가이드 — 단정 아닌, 데이터가 말하는 차이
+  const insight = $derived.by(() => {
+    const a = data.rankA, b = data.rankB;
+    if (!a || !b || !A || !B) return [] as string[];
+    const pts: string[] = [];
+    if (gapAvg && a.avgPriceRaw && b.avgPriceRaw) {
+      const hi = a.avgPriceRaw >= b.avgPriceRaw ? A : B;
+      const lo = hi === A ? B : A;
+      pts.push(`가격대는 ${hi.name}가 ${lo.name}보다 ${gapAvg}% 높아요. 예산 여유·상급지 선호면 ${hi.name}, 상대적으로 합리적인 가격을 원하면 ${lo.name}.`);
+    }
+    if (a.transactionCount && b.transactionCount && a.transactionCount !== b.transactionCount) {
+      const liq = a.transactionCount > b.transactionCount ? A : B;
+      pts.push(`최근 거래량은 ${liq.name}가 더 많아요. 사고팔기 쉬운 환금성 측면에선 ${liq.name}가 유리한 편이에요.`);
+    }
+    return pts;
+  });
+
   function ask(q: string) {
     goto(`/?q=${encodeURIComponent(q)}`);
   }
@@ -129,6 +146,19 @@
         </div>
         <p class="text-[11px] text-gray-600 mt-2 text-center">* 가격이 높다고 더 좋은 지역이라는 의미는 아닙니다. 목적(실거주·투자·학군)에 따라 판단하세요.</p>
       </section>
+
+      <!-- 그래서 어디? 목적별 가이드 -->
+      {#if insight.length > 0}
+      <section class="mb-10 rounded-2xl bg-orange-500/5 border border-orange-500/15 p-4">
+        <h2 class="text-sm font-semibold text-gray-200 mb-2">💡 그래서 어디가 맞을까?</h2>
+        <ul class="space-y-1.5">
+          {#each insight as p}
+            <li class="text-sm text-gray-300 leading-relaxed flex gap-2"><span class="text-orange-400">·</span><span>{p}</span></li>
+          {/each}
+        </ul>
+        <p class="text-[11px] text-gray-600 mt-2.5">* 데이터로 본 차이일 뿐입니다. 학군·교통·생활권 등은 목적에 맞게 직접 비교하세요.</p>
+      </section>
+      {/if}
 
       <!-- B. 평형별 시세 비교 -->
       {#if areaRanges.length > 0}

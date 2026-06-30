@@ -36,6 +36,13 @@
     if (v >= 95) return { label: '보합 국면', cls: 'text-gray-200' };
     return { label: '하강 국면', cls: 'text-sky-400' };
   }
+  // 국면 평이한 해석 (단정/예측 아님 — 심리 상태 설명)
+  function interp(v: number | null): string {
+    if (v == null) return '';
+    if (v >= 115) return '지금은 사려는 심리가 팔려는 심리보다 강한 국면이에요. 다만 심리 지표일 뿐, 가격 상승을 보장하지는 않습니다.';
+    if (v >= 95) return '매수·매도 심리가 비슷하게 맞선 관망 국면이에요. 뚜렷한 방향성은 약합니다.';
+    return '팔려는 심리가 더 우세한 국면이에요. 급한 거래일수록 신중하게 보세요.';
+  }
   function fmtMonth(p: string) {
     const [y, m] = (p || '').split('-');
     return y && m ? `${y}.${m}` : p;
@@ -111,6 +118,9 @@
           전월 대비 {deltaStr(national.delta)}
           {#if natYoY != null} · 1년 전 대비 <span class={deltaCls(natYoY)}>{deltaStr(natYoY)}</span>{/if}
           · 100 = 중립
+        </p>
+        <p class="text-sm text-gray-300 mt-4 max-w-md mx-auto leading-relaxed bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+          💡 {interp(national.latest)}
         </p>
       </div>
 
