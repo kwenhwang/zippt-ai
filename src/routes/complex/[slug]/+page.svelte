@@ -497,7 +497,7 @@
 
     <!-- 입지 점수 -->
     <section class="mb-8">
-      <h2 class="text-lg font-semibold mb-4 text-gray-200">입지 점수 <span class="text-xs text-gray-500 font-normal">(전국 상대 0~100)</span><InfoTip text="교통·학군·편의 시설을 전국 단지와 비교해 0~100으로 환산한 추정값입니다. 절대 등급이 아니라 상대 비교용입니다. 학군은 반경 1km 중학교의 특목고 진학률(절대+전국상대 혼합)과 시군구 학원가 강도(특목고 진학실적)를 합산한 추정치로, 실제 배정 고교·학군 명성과 다를 수 있습니다." /></h2>
+      <h2 class="text-lg font-semibold mb-4 text-gray-200">입지 점수 <span class="text-xs text-gray-500 font-normal">(전국 상대 0~100)</span><InfoTip text="교통·학군·편의 시설을 전국 단지와 비교해 0~100으로 환산한 추정값입니다. 절대 등급이 아니라 상대 비교용입니다. 학군은 반경 1km 중학교의 특목고 진학률(절대+전국상대 혼합)과 반경 1km 입시·외국어 학원 밀도를 합산한 추정치로, 실제 배정 고교·학군 명성과 다를 수 있습니다." /></h2>
       <div class="space-y-3">
         {#each scoreItems as s}
           <div class="flex items-center gap-3">
@@ -514,7 +514,7 @@
         {#if c.nearest_bus_stop_m}<span>🚌 버스 {Math.round(c.nearest_bus_stop_m)}m</span>{/if}
         {#if c.parking_per_household}<span>🅿️ 세대당 주차 {c.parking_per_household}</span>{/if}
       </div>
-      <p class="text-[11px] text-gray-600 mt-3 leading-relaxed">* 학군: 반경 1km 중학교의 특목고 진학률 + 시군구 학원가 강도를 합산한 추정치(기준 2026-01)입니다. 배정 고교·실제 학군 명성을 직접 반영하지 않으므로 참고용입니다.</p>
+      <p class="text-[11px] text-gray-600 mt-3 leading-relaxed">* 학군: 반경 1km 중학교의 특목고 진학률 + 반경 1km 입시·외국어 학원 밀도를 합산한 추정치(기준 2026-01)입니다. 배정 고교·실제 학군 명성을 직접 반영하지 않으므로 참고용입니다.</p>
     </section>
 
     <!-- 이 지역 더 보기 -->
