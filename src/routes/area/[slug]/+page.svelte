@@ -2,9 +2,18 @@
   import type { PageData } from './$types';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { REGIONS } from '$lib/data/regions';
 
   let { data }: { data: PageData } = $props();
   const region = data.region;
+
+  // 다른 지역과 비교 — 현재 지역 제외
+  const otherRegions = $derived(REGIONS.filter((r) => r.slugEn !== region?.slugEn));
+  let compareTarget = $state('');
+  function goCompare() {
+    if (!compareTarget || !region) return;
+    goto(`/compare/${region.slugEn}-vs-${compareTarget}`);
+  }
 
   let rankInfo = $state(data.rankInfo);
   let complexes = $state(data.complexes);
@@ -249,10 +258,13 @@
       <!-- C. 평형별 시세 -->
       {#if priceByArea && priceByArea.length > 0}
       <section class="mb-10">
-        <h2 class="text-lg font-semibold mb-4 text-gray-200">
-          {region.name} 평형별 시세
-          <span class="text-xs text-gray-500 font-normal ml-2">최근 3개월 실거래 기준</span>
-        </h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-200">
+            {region.name} 평형별 시세
+            <span class="text-xs text-gray-500 font-normal ml-2">최근 3개월 실거래 기준</span>
+          </h2>
+          <a href="/pyeong/{region.slugEn}" class="text-xs text-orange-400 hover:text-orange-300 whitespace-nowrap">평형분석 상세 →</a>
+        </div>
         <div class="grid grid-cols-2 gap-3">
           {#each priceByArea as item}
             {#if item.avg_price}
@@ -271,6 +283,30 @@
         <p class="text-xs text-gray-600 mt-3 text-center">* 전용면적 기준, 국토교통부 실거래 데이터</p>
       </section>
       {/if}
+
+      <!-- 다른 지역과 비교 -->
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-4 text-gray-200">{region.name} 다른 지역과 비교</h2>
+        <div class="flex gap-2">
+          <select
+            bind:value={compareTarget}
+            class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 focus:border-orange-500/40 focus:outline-none"
+          >
+            <option value="" disabled>비교할 지역 선택…</option>
+            {#each otherRegions as r}
+              <option value={r.slugEn}>{r.name}</option>
+            {/each}
+          </select>
+          <button
+            onclick={goCompare}
+            disabled={!compareTarget}
+            class="px-5 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 transition-all"
+          >
+            비교
+          </button>
+        </div>
+        <p class="text-xs text-gray-600 mt-2">평균가·평당가·평형별 시세·대표단지를 나란히 비교합니다</p>
+      </section>
 
       <!-- 대표 질문 카드 -->
       <section class="mb-16">
