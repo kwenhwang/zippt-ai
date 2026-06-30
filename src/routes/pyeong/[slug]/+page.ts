@@ -1,4 +1,4 @@
-import { getRegion } from '$lib/data/regions';
+import { getRegion, regionQuery } from '$lib/data/regions';
 
 export const prerender = false;
 
@@ -10,7 +10,7 @@ export async function load({ params }) {
 
   let byArea: any[] = [];
   try {
-    const res = await fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(region.name)}`);
+    const res = await fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(regionQuery(region))}`);
     if (res.ok) {
       const json = await res.json();
       byArea = json?.data?.by_area || [];

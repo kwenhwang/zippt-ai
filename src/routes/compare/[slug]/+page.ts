@@ -1,4 +1,4 @@
-import { getRegion } from '$lib/data/regions';
+import { getRegion, regionQuery } from '$lib/data/regions';
 
 export const prerender = false;
 
@@ -83,13 +83,15 @@ export async function load({ params }) {
     }
   } catch {}
 
+  const qA = regionQuery(regionA);
+  const qB = regionQuery(regionB);
   const [rankA, rankB, priceByAreaA, priceByAreaB, complexesA, complexesB] = await Promise.all([
-    fetchRankInfo(rankings, regionA.name),
-    fetchRankInfo(rankings, regionB.name),
-    fetchPriceByArea(regionA.name),
-    fetchPriceByArea(regionB.name),
-    fetchTopComplexes(regionA.name),
-    fetchTopComplexes(regionB.name)
+    fetchRankInfo(rankings, qA),
+    fetchRankInfo(rankings, qB),
+    fetchPriceByArea(qA),
+    fetchPriceByArea(qB),
+    fetchTopComplexes(qA),
+    fetchTopComplexes(qB)
   ]);
 
   return { regionA, regionB, rankA, rankB, priceByAreaA, priceByAreaB, complexesA, complexesB };

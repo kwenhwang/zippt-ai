@@ -40,7 +40,7 @@
   onMount(async () => {
     if (!data.region) return;
     const API_BASE = 'https://korean-api-platform.vercel.app';
-    const district = data.region.name;
+    const district = data.region.district ?? data.region.name;
 
     // rankInfo 없으면 rankings API 호출
     if (!rankInfo) {

@@ -1,4 +1,4 @@
-import { getRegion, getRegionEntries } from '$lib/data/regions';
+import { getRegion, getRegionEntries, regionQuery } from '$lib/data/regions';
 
 export const prerender = true;
 
@@ -11,11 +11,12 @@ export async function load({ params }) {
   if (!region) return { region: null, complexes: [], rankInfo: null, priceByArea: [], valueRanking: [], complexesAll: [] };
 
   const API_BASE = 'https://korean-api-platform.vercel.app';
+  const q = regionQuery(region); // 충돌 방지 풀네임(예: '부산광역시 남구')
 
   const [complexesRes, rankingsRes, priceByAreaRes] = await Promise.allSettled([
-    fetch(`${API_BASE}/api/complexes?district=${encodeURIComponent(region.name)}&limit=30&period_months=3`),
+    fetch(`${API_BASE}/api/complexes?district=${encodeURIComponent(q)}&limit=30&period_months=3`),
     fetch(`${API_BASE}/api/stats/rankings?sort_by=price&order=desc&limit=50`),
-    fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(region.name)}`)
+    fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(q)}`)
   ]);
 
   let complexes: any[] = [];
@@ -70,7 +71,7 @@ export async function load({ params }) {
   if (rankingsRes.status === 'fulfilled' && rankingsRes.value.ok) {
     const data = await rankingsRes.value.json();
     const rankings = data?.data?.rankings || [];
-    const match = rankings.find((r: any) => r.region_name?.includes(region.name));
+    const match = rankings.find((r: any) => r.region_name?.includes(q));
     if (match) {
       rankInfo = {
         rank: match.rank,
