@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
 
   let { data }: {
-    data: { name: string; complex: any; transactions: any[]; jeonse: any[]; jeonseMeta: any; auctions: any[]; region: { name: string; slugEn: string } | null };
+    data: { name: string; complex: any; transactions: any[]; jeonse: any[]; jeonseMeta: any; auctions: any[]; region: { name: string; slugEn: string } | null; regionAvgPrice: number | null };
   } = $props();
   const c = data.complex;
 
@@ -151,6 +151,15 @@
     return { avg: c?.avg_price ?? 0, count: c?.transaction_count ?? 0, py: null as number | null };
   });
 
+  // ── 매매가 anchor: 이 단지 평균 vs 구 전체 평균 ───────────────
+  const priceAnchor = $derived.by(() => {
+    const ca = c?.avg_price;
+    const ra = data.regionAvgPrice;
+    if (!ca || !ra) return null;
+    const pct = Math.round(((ca - ra) / ra) * 100);
+    return { pct, regionAvg: ra, regionName: data.region?.name ?? '구' };
+  });
+
   // ── 투자 판단 신호 ─────────────────────────────────────────
   // 대표 전세가율 = 전세 거래가 가장 많은(유동성 높은) 평형 기준
   const repGroup = groups.filter((g) => g.ratio).sort((a, b) => b.jeonseCount - a.jeonseCount)[0];
@@ -226,6 +235,21 @@
         <div class="text-3xl font-bold text-white">{headline.count?.toLocaleString() ?? '-'}<span class="text-base font-medium text-gray-500"> 건</span></div>
       </div>
     </section>
+
+    <!-- 매매가 anchor: 구 평균 대비 -->
+    {#if priceAnchor}
+    <div class="-mt-5 mb-8 text-sm text-gray-400">
+      이 단지 평균은 <span class="text-gray-200 font-medium">{priceAnchor.regionName} 평균 {eok(priceAnchor.regionAvg)}</span> 대비
+      {#if priceAnchor.pct > 0}
+        <span class="text-orange-400 font-semibold">{priceAnchor.pct}% 높습니다</span>
+      {:else if priceAnchor.pct < 0}
+        <span class="text-sky-400 font-semibold">{Math.abs(priceAnchor.pct)}% 낮습니다</span>
+      {:else}
+        <span class="text-gray-200 font-semibold">평균 수준</span>
+      {/if}
+      <span class="text-gray-600 text-xs block mt-0.5">* {priceAnchor.regionName} 전체 아파트 평균가(최근 3개월) 기준</span>
+    </div>
+    {/if}
 
     <!-- 투자 판단 신호 (전세가율·거래활성도·깡통전세) -->
     {#if repRatio != null || velocity != null}

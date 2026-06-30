@@ -28,6 +28,13 @@
   }
   const winAvg = $derived(higher(data.rankA?.avgPriceRaw, data.rankB?.avgPriceRaw));
   const winPy = $derived(higher(data.rankA?.avgPricePerPyRaw, data.rankB?.avgPricePerPyRaw));
+  // 두 값의 격차(%) — 작은 쪽 기준. anchor: "차이가 큰지" 체감용
+  function gapPct(a: number | undefined, b: number | undefined): number | null {
+    if (!a || !b || a === b) return null;
+    return Math.round((Math.abs(a - b) / Math.min(a, b)) * 100);
+  }
+  const gapAvg = $derived(gapPct(data.rankA?.avgPriceRaw, data.rankB?.avgPriceRaw));
+  const gapPy = $derived(gapPct(data.rankA?.avgPricePerPyRaw, data.rankB?.avgPricePerPyRaw));
 
   function ask(q: string) {
     goto(`/?q=${encodeURIComponent(q)}`);
@@ -84,11 +91,11 @@
             <div class="grid grid-cols-2 gap-3">
               <div class="bg-white/5 border rounded-2xl p-4 text-center {winAvg === 'a' ? 'border-orange-500/40' : 'border-white/10'}">
                 <div class="text-2xl font-bold text-white">{data.rankA?.avgPrice ?? '-'}</div>
-                {#if winAvg === 'a'}<div class="text-[10px] text-orange-400 mt-1">더 높음</div>{/if}
+                {#if winAvg === 'a'}<div class="text-[10px] text-orange-400 mt-1">더 높음{#if gapAvg} · +{gapAvg}%{/if}</div>{/if}
               </div>
               <div class="bg-white/5 border rounded-2xl p-4 text-center {winAvg === 'b' ? 'border-orange-500/40' : 'border-white/10'}">
                 <div class="text-2xl font-bold text-white">{data.rankB?.avgPrice ?? '-'}</div>
-                {#if winAvg === 'b'}<div class="text-[10px] text-orange-400 mt-1">더 높음</div>{/if}
+                {#if winAvg === 'b'}<div class="text-[10px] text-orange-400 mt-1">더 높음{#if gapAvg} · +{gapAvg}%{/if}</div>{/if}
               </div>
             </div>
           {/if}
@@ -100,11 +107,11 @@
           <div class="grid grid-cols-2 gap-3">
             <div class="bg-white/5 border rounded-2xl p-4 text-center {winPy === 'a' ? 'border-orange-500/40' : 'border-white/10'}">
               <div class="text-xl font-bold text-orange-400">{data.rankA?.avgPricePerPy ?? '-'}</div>
-              {#if winPy === 'a'}<div class="text-[10px] text-orange-400 mt-1">더 높음</div>{/if}
+              {#if winPy === 'a'}<div class="text-[10px] text-orange-400 mt-1">더 높음{#if gapPy} · +{gapPy}%{/if}</div>{/if}
             </div>
             <div class="bg-white/5 border rounded-2xl p-4 text-center {winPy === 'b' ? 'border-orange-500/40' : 'border-white/10'}">
               <div class="text-xl font-bold text-orange-400">{data.rankB?.avgPricePerPy ?? '-'}</div>
-              {#if winPy === 'b'}<div class="text-[10px] text-orange-400 mt-1">더 높음</div>{/if}
+              {#if winPy === 'b'}<div class="text-[10px] text-orange-400 mt-1">더 높음{#if gapPy} · +{gapPy}%{/if}</div>{/if}
             </div>
           </div>
         </div>

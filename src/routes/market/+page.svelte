@@ -20,6 +20,15 @@
   let selected = $state('전국');
   const sel = $derived(find(selected));
 
+  // 전국 전년 동월 대비(anchor): series는 최근 ~25개월(월별)
+  const natYoY = $derived.by(() => {
+    const s = national?.series ?? [];
+    if (s.length < 13) return null;
+    const latest = s[s.length - 1].index;
+    const yearAgo = s[s.length - 13].index;
+    return Math.round((latest - yearAgo) * 10) / 10;
+  });
+
   // 부동산원 소비심리지수 공식 국면: <95 하강 / 95~115 보합 / 115+ 상승
   function phase(v: number | null): { label: string; cls: string } {
     if (v == null) return { label: '-', cls: 'text-gray-400' };
@@ -98,7 +107,11 @@
           <span class="text-lg {deltaCls(national.delta)} mb-2">{deltaStr(national.delta)}</span>
         </div>
         <div class="mt-2 text-lg font-semibold {phase(national.latest).cls}">전국 {phase(national.latest).label}</div>
-        <p class="text-gray-500 text-sm mt-1">전월 대비 변동 · 100 = 중립</p>
+        <p class="text-gray-500 text-sm mt-1">
+          전월 대비 {deltaStr(national.delta)}
+          {#if natYoY != null} · 1년 전 대비 <span class={deltaCls(natYoY)}>{deltaStr(natYoY)}</span>{/if}
+          · 100 = 중립
+        </p>
       </div>
 
       <!-- 지역 선택 + 추이 차트 -->

@@ -67,13 +67,25 @@ export async function load({ params, fetch }) {
     }
   }
 
-  // district("서울특별시 마포구 아현동")의 시군구로 지역 템플릿(/area·/pyeong) 연결
+  // district("서울특별시 마포구 아현동")의 시군구로 지역 템플릿(/area·/pyeong) 연결 + 구 평균가(anchor)
   let region: { name: string; slugEn: string } | null = null;
+  let regionAvgPrice: number | null = null; // 구 전체 평균 매매가(만원) — 단지가 비교 기준
   if (complex?.district) {
     const sigungu = complex.district.split(' ')[1];
     const r = sigungu ? getRegion(sigungu) : undefined;
     if (r) region = { name: r.name, slugEn: r.slugEn };
+    // rankings에서 해당 시군구 평균가 조회 (anchor용)
+    if (sigungu) {
+      try {
+        const rk = await fetch(`${API_BASE}/api/stats/rankings?sort_by=price&order=desc&limit=60`);
+        if (rk.ok) {
+          const rankings = (await rk.json())?.data?.rankings ?? [];
+          const m = rankings.find((x: any) => x.region_name?.includes(sigungu));
+          if (m?.avg_price) regionAvgPrice = m.avg_price;
+        }
+      } catch { /* graceful */ }
+    }
   }
 
-  return { name, complex, transactions, jeonse, jeonseMeta, auctions, region };
+  return { name, complex, transactions, jeonse, jeonseMeta, auctions, region, regionAvgPrice };
 }
