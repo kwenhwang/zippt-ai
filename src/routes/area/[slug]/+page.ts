@@ -14,13 +14,16 @@ export async function load({ params }) {
   const q = regionQuery(region); // 충돌 방지 풀네임(예: '부산광역시 남구')
   const uk = regionUnsold(region); // 미분양 조회키 {sido, sigungu}
 
-  const [complexesRes, rankingsRes, priceByAreaRes, unsoldRes] = await Promise.allSettled([
+  const [complexesRes, rankingsRes, priceByAreaRes, unsoldRes, presaleRes] = await Promise.allSettled([
     fetch(`${API_BASE}/api/complexes?district=${encodeURIComponent(q)}&limit=30&period_months=3`),
     fetch(`${API_BASE}/api/stats/rankings?sort_by=price&order=desc&limit=50`),
     fetch(`${API_BASE}/api/stats/price-by-area?district=${encodeURIComponent(q)}`),
     uk
       ? fetch(`${API_BASE}/api/market/unsold?region=${encodeURIComponent(uk.sido)}&sigungu=${encodeURIComponent(uk.sigungu)}&limit=18`)
-      : Promise.reject(new Error('no unsold key'))
+      : Promise.reject(new Error('no unsold key')),
+    uk
+      ? fetch(`${API_BASE}/api/market/presale?region=${encodeURIComponent(uk.sido)}&sigungu=${encodeURIComponent(uk.sigungu)}&limit=6`)
+      : Promise.reject(new Error('no presale key'))
   ]);
 
   let complexes: any[] = [];
@@ -118,5 +121,27 @@ export async function load({ params }) {
     } catch { /* graceful */ }
   }
 
-  return { region, complexes, rankInfo, priceByArea, valueRanking, complexesAll, unsold };
+  // 분양: 해당 시군구 공고 (청약접수 최신순) — 분양가·일정
+  let presale: any[] = [];
+  const today = new Date().toISOString().slice(0, 10); // 빌드 시점 기준
+  if (uk && presaleRes.status === 'fulfilled' && presaleRes.value.ok) {
+    try {
+      const data = await presaleRes.value.json();
+      presale = (data?.data || []).map((x: any) => ({
+        name: x.house_nm,
+        sigungu: x.sigungu,
+        households: x.tot_suply_hshldco,
+        rceptBgn: x.rcept_bgnde,     // 청약접수 시작
+        rceptEnd: x.rcept_endde,
+        priceMin: x.price_min,        // 만원
+        priceMax: x.price_max,
+        builder: x.cnstrct_entrps_nm,
+        rentType: x.rent_secd_nm,     // 분양주택/임대
+        url: x.pblanc_url,
+        upcoming: !!(x.rcept_bgnde && x.rcept_bgnde >= today)  // 청약 예정(빌드 기준)
+      })).filter((x: any) => x.name);
+    } catch { /* graceful */ }
+  }
+
+  return { region, complexes, rankInfo, priceByArea, valueRanking, complexesAll, unsold, presale };
 }

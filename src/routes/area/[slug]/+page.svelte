@@ -312,6 +312,43 @@
       </section>
       {/if}
 
+      <!-- E. 분양 공고 (신규 공급 · 청약) -->
+      {#if (data.presale ?? []).length > 0}
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-1 text-gray-200">{region.name} 분양·청약<InfoTip text="청약홈(한국부동산원)에 등록된 아파트 분양 공고입니다. 분양가는 주택형별 분양최고금액 기준이며, 옵션·확장 비용은 제외입니다. 공공분양·신혼희망타운 등은 시세보다 낮게 공급됩니다." /></h2>
+        <p class="text-xs text-gray-500 mb-3">최근·예정 분양 공고 · 국토교통부 청약홈 기준</p>
+        <div class="space-y-2">
+          {#each data.presale as p}
+            <div class="rounded-xl bg-white/5 border border-white/10 p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    {#if p.upcoming}<span class="shrink-0 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded px-1.5 py-0.5">청약예정</span>{/if}
+                    <span class="font-medium text-gray-100 text-sm truncate">{p.name}</span>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-1">
+                    {#if p.rceptBgn}청약접수 {p.rceptBgn}{#if p.rceptEnd && p.rceptEnd !== p.rceptBgn}~{p.rceptEnd.slice(5)}{/if}{/if}
+                    {#if p.households}<span class="text-gray-600"> · {p.households.toLocaleString()}세대</span>{/if}
+                    {#if p.rentType && p.rentType !== '분양주택'}<span class="text-amber-400/80"> · {p.rentType}</span>{/if}
+                  </div>
+                  {#if p.builder}<div class="text-[11px] text-gray-600 mt-0.5 truncate">{p.builder}</div>{/if}
+                </div>
+                <div class="text-right shrink-0">
+                  {#if p.priceMin}
+                    <div class="text-sm font-bold text-white">
+                      {(p.priceMin / 10000).toFixed(1)}{#if p.priceMax && p.priceMax !== p.priceMin}~{(p.priceMax / 10000).toFixed(1)}{/if}<span class="text-xs font-medium text-gray-500">억</span>
+                    </div>
+                    <div class="text-[10px] text-gray-600">분양가</div>
+                  {/if}
+                </div>
+              </div>
+            </div>
+          {/each}
+        </div>
+        <p class="text-[11px] text-gray-600 mt-2 leading-relaxed">* 분양최고금액 기준(옵션·발코니 확장 별도). 공공분양·신혼희망타운은 시세보다 낮게 공급됩니다. 정확한 일정·자격은 청약홈에서 확인하세요.</p>
+      </section>
+      {/if}
+
       <!-- 다른 지역과 비교 -->
       <section class="mb-10">
         <h2 class="text-lg font-semibold mb-4 text-gray-200">{region.name} 다른 지역과 비교</h2>
